@@ -132,15 +132,16 @@
 #     app.run(debug=True)
 
 from flask import Flask, request, jsonify
-from flask_uploads import UploadSet, configure_uploads, DOCUMENTS
 import os
 
 app = Flask(__name__)
 
-# Configure the upload set
-pdfs = UploadSet('pdfs', DOCUMENTS)
-app.config['UPLOADED_PDFS_DEST'] = 'uploads'
-configure_uploads(app, pdfs)
+# Create the uploads folder if it doesn't exist
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
@@ -157,8 +158,9 @@ def upload_pdf():
     # Check if the file is a PDF
     if file and file.filename.endswith('.pdf'):
         # Save the file
-        filename = pdfs.save(file)
-        return jsonify({"message": "File uploaded successfully", "filename": filename}), 200
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+        return jsonify({"message": "File uploaded successfully", "filename": file.filename}), 200
     else:
         return jsonify({"error": "Invalid file type. Only PDF files are allowed."}), 400
 
