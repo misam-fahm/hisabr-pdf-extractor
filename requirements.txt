@@ -1,5 +1,0 @@
-Flask==2.2.2  # or the version you're using
-Werkzeug==2.2.2  # Update to a version compatible with Flask 2.2.x
-Sanic==21.12.0  # Use a newer version of Sanic if possible
-pdfplumber==0.6.0  # or whatever version you're using
-pip freeze > requirements.txt
