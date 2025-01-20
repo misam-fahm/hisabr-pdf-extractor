@@ -1,19 +1,16 @@
 from flask import Flask, request, jsonify
 import os
-import pdfplumber
+from flask_uploads import UploadSet, configure_uploads, DOCUMENTS
+import pdfplumber # type: ignore
 import json
 import re
-from flask_cors import CORS
+from flask_cors import CORS # type: ignore
 from collections import OrderedDict
 from flask import Response
 
 
 app = Flask(__name__)
 CORS(app)
-
-from sanic import Sanic
-from sanic.response import json
-app = Sanic()
 
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_from_pdf(file, pdf_type="Gordon"):
