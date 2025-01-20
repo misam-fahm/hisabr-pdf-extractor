@@ -1,3 +1,3 @@
-sanic==19.6.0
-Flask==2.2.2
-Werkzeug==2.0.3
+Flask==2.2.2  # or the version you're using
+Werkzeug==2.2.2  # Update to a version compatible with Flask 2.2.x
+Sanic==21.12.0  # Use a newer version of Sanic if possible
