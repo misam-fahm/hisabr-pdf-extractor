@@ -11,6 +11,10 @@ from flask import Response
 app = Flask(__name__)
 CORS(app)
 
+from sanic import Sanic
+from sanic.response import json
+app = Sanic()
+
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_from_pdf(file, pdf_type="Gordon"):
     invoice_details = {}
@@ -77,6 +81,9 @@ def extract_invoice_from_pdf(file, pdf_type="Gordon"):
     }
 
 # API route to handle single PDF upload and processing
+@app.route('/')
+async def index(request, path=""):
+    return json({'hello': path})
 
 @app.route('/convert-pdf', methods=['POST'])
 def convert_pdf():
