@@ -399,7 +399,7 @@ from flask_cors import CORS
 from collections import OrderedDict
 from flask import Response
 
-app = Flask(_name_)
+app = Flask(__name__)
 CORS(app)
 
 # Utility function to extract invoice details and items from a single PDF
@@ -633,6 +633,6 @@ def process_pdfs():
         mimetype='application/json'
     )
 
-if _name_ == '_main_':
+if __name__ == '_main_':
     app.run(debug=True)
 
