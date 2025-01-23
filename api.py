@@ -455,7 +455,7 @@ def extract_invoice_non_detailed(file):
                         data += row
         
         # Parse invoice items
-        def parse_invoice_data(data, "Gordon"):
+        def parse_invoice_data(data):
             items = []
             parsed_items = []
             i = 0
@@ -479,7 +479,7 @@ def extract_invoice_non_detailed(file):
                     i += 1
             return parsed_items
 
-        invoice_items = parse_invoice_data(data, "Gordon")
+        invoice_items = parse_invoice_data(data)
 
     return {
         "invoice_details": invoice_details,
@@ -597,7 +597,7 @@ def extract_invoice_detailed(file):
                 i += 1
         return parsed_items
 
-    invoice_items = parse_invoice_data(data,"Gordon")
+    invoice_items = parse_invoice_data(data)
 
     return {
     "invoice_details": invoice_details,
