@@ -451,7 +451,7 @@ def extract_invoice_non_detailed(file):
                         data += row
         
         # Parse invoice items
-        def parse_invoice_data(data, pdf_type="Gordon"):
+        def parse_invoice_data(data, "Gordon"):
             items = []
             parsed_items = []
             i = 0
@@ -468,7 +468,6 @@ def extract_invoice_non_detailed(file):
                         "unit_price" : data[i+7],
                         "tax" : data[i+8],
                         "extended_price" : data[i+9],
-                        "type":pdf_type,
                     })
                     parsed_items.append(item)
                     i+=10
@@ -557,7 +556,7 @@ def extract_invoice_detailed(file):
             pack = data.split('X')[-1]
             return pack
     
-    def parse_invoice_data(data,pdf_type="Gordon"):
+    def parse_invoice_data(data):
         items = []
         parsed_items = []
         i = 0
@@ -579,7 +578,6 @@ def extract_invoice_detailed(file):
                     "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
                     "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
                     "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
-                    "type":pdf_type
                 }
                 
                 parsed_items.append(item)
@@ -670,7 +668,6 @@ def convert_pdf():
         return jsonify({'error': 'No file uploaded'}), 400
 
     file = request.files['file']
-    pdf_type = request.form.get('pdf_type', 'Gordon')  # Default to 'Gordon' if not provided
 
     if not file.filename.endswith(".pdf"):
         return jsonify({'error': 'Invalid file format'}), 400
@@ -682,7 +679,7 @@ def convert_pdf():
     pdf_type_to_function_and_template = {
         'detailed': extract_invoice_detailed(file),
         'non-detailed': extract_invoice_non_detailed(file),
-        'Sysco': (extract_invoice_Sysco, "Sysco")
+        'Sysco': (extract_invoice_Sysco, file)
     }
 
     # Get the corresponding function and template based on pdf_type
