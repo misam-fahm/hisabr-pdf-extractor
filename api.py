@@ -681,9 +681,9 @@ def convert_pdf():
 
     # Extract data from the uploaded PDF using the selected type
     pdf_type_to_function_and_template = {
-        'detailed': extract_invoice_detailed(file),
-        'non-detailed': extract_invoice_non_detailed(file),
-        'Sysco': (extract_invoice_Sysco, file)
+        'detailed': extract_invoice_detailed,
+        'non-detailed': extract_invoice_non_detailed,
+        'Sysco': extract_invoice_Sysco,
     }
 
     # Get the corresponding function and template based on pdf_type
