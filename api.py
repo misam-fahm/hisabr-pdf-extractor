@@ -402,6 +402,10 @@ from collections import OrderedDict
 app = Flask(__name__)
 CORS(app)
 
+# Define the fallback function
+def default_function(file):
+    return {'error': 'Unknown PDF type'}
+
 def detect_pdf_type(file):
     """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
     Returns 'detailed' or 'non-detailed'."""
@@ -683,10 +687,10 @@ def convert_pdf():
     }
 
     # Get the corresponding function and template based on pdf_type
-    extract_function, template = pdf_type_to_function_and_template.get(pdf_type, pdf_type_to_function_and_template['default'])
+    extract_function = pdf_type_to_function_and_template.get(pdf_type, default_function)
 
     # Call the selected function with the file and template
-    extracted_data = extract_function(file, template)
+    extracted_data = extract_function(file)
 
     # if pdf_type == 'detailed':
     #     extracted_data = extract_invoice_Gordon_detailed(file, pdf_type)
