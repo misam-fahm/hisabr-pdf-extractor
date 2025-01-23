@@ -390,20 +390,36 @@
 #     app.run(debug=True)
 
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import os
 import pdfplumber
 import json
 import re
 from flask_cors import CORS
 from collections import OrderedDict
-from flask import Response
+# from flask import Response
 
 app = Flask(__name__)
 CORS(app)
 
+def detect_pdf_type(file):
+    """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
+    Returns 'detailed' or 'non-detailed'."""
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            if tables:
+                # Check the first table
+                first_table = tables[1]
+                print(first_table)
+                if len(first_table[0]) > 10:  # Adjust column count threshold as needed
+                    return 'detailed'
+                else:
+                    return 'non-detailed'
+    return 'unknown'  # If no tables are found
+
 # Utility function to extract invoice details and items from a single PDF
-def extract_invoice_Gordon(file, pdf_type="Gordon"):
+def extract_invoice_non_detailed(file):
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
         # Extract text from the first page
@@ -435,7 +451,7 @@ def extract_invoice_Gordon(file, pdf_type="Gordon"):
                         data += row
         
         # Parse invoice items
-        def parse_invoice_data(data, pdf_type):
+        def parse_invoice_data(data, pdf_type="Gordon"):
             items = []
             parsed_items = []
             i = 0
@@ -460,7 +476,7 @@ def extract_invoice_Gordon(file, pdf_type="Gordon"):
                     i += 1
             return parsed_items
 
-        invoice_items = parse_invoice_data(data, pdf_type)
+        invoice_items = parse_invoice_data(data, "Gordon")
 
     return {
         "invoice_details": invoice_details,
@@ -468,7 +484,7 @@ def extract_invoice_Gordon(file, pdf_type="Gordon"):
     }
 
 # API route to handle single PDF upload and processing
-def extract_invoice_Gordon_detailed(file, pdf_type="Gordon"):
+def extract_invoice_detailed(file):
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
@@ -497,6 +513,20 @@ def extract_invoice_Gordon_detailed(file, pdf_type="Gordon"):
                     row = cleaned_data
                     if row:
                         data += row
+
+        for line in data:
+            if "Product Total" in line:
+                dt = line.split('\n')
+                invoice_details["Product Total"] = dt[0].split()[-1].replace('$','')
+                invoice_details["Misc"] = dt[1].split()[-1].replace('$','')
+                invoice_details["Sub Total"] = dt[2].split()[-1].replace('$','')
+                try :
+                    invoice_details["Tax 1"] = dt[3].split()[-1].replace('$','')
+                    invoice_details["Tax 2"] = dt[4].split()[-1].replace('$','')
+                except IndexError :
+                    pass
+            if "Invoice Total" in line :
+                invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','')
 
     def filter_qty_ship(data):
         data = data.split(" ")
@@ -527,13 +557,13 @@ def extract_invoice_Gordon_detailed(file, pdf_type="Gordon"):
             pack = data.split('X')[-1]
             return pack
     
-    def parse_invoice_data(data,pdf_type):
+    def parse_invoice_data(data,pdf_type="Gordon"):
         items = []
         parsed_items = []
         i = 0
 
         while i < len(data):
-            if len(data[i]) == 6:
+            if len(data[i]) == 6 and data[i].isdigit():
                 item = {
                     "item_code": data[i],
                     "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
@@ -572,6 +602,68 @@ def extract_invoice_Gordon_detailed(file, pdf_type="Gordon"):
     "invoice_items": invoice_items
     }
 
+def extract_invoice_Sysco(file,pdf_type="Sysco"):
+    invoice_details = {}
+    with pdfplumber.open(file) as pdf:
+        first_page = pdf.pages[0]
+        text = first_page.extract_text()
+        
+        # Extract invoice number and date
+        for line in text.split('\n'):
+            if 'TRUCK STOP' in line:
+                invoice_details['invoice_number'] = line.split(' ')[3]
+            
+            # Extract date based on pattern or fallback
+            date_match = re.search(r'DATE\s*:\s*(\d{2}/\d{2}/\d{2})', text)
+            invoice_details['seller_name'] = pdf_type
+            if date_match:
+                invoice_details['invoice_date'] = date_match.group(1)
+            elif 'SIGNED:' in line:
+                invoice_details['invoice_date'] = line.split(' ')[-1]
+
+        # Extract data from tables
+        data = []
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            for table in tables:
+                for row in table:
+                    cleaned_row = [cell for cell in row if cell is not None]
+                    if cleaned_row:
+                        data.extend(cleaned_row)
+
+    # Placeholder for parsing Sysco-specific table data
+    # Customize this logic for Sysco's table structure
+    items = []
+    i = 0
+    while i < len(data):
+        if data[i] in ['C', 'F', 'D', '1']:
+            if data[i] == '1' and data[i+3] not in "123456789-":
+                break
+            else:  # Adjust based on Sysco table structure
+                item = {
+                    "loc": "" if data[i] == '1' else data[i],
+                    "qty": data[i + 1] if data[i] != '1' else data[i],
+                    # " ": data[i + 2] if data[i] != '1' else data[i + 2],
+                    "unit": data[i + 3] if data[i] != '1' else data[i + 2],
+                    "pack": data[i + 4] if data[i] != '1' else data[i + 3],
+                    "size": data[i + 5] if data[i] != '1' else data[i + 4],
+                    "item_description": data[i + 6] if data[i] != '1' else data[i + 5],
+                    "item_code": data[i + 7] if data[i] != '1' else data[i + 6],
+                    "unit_price": data[i + 8] if data[i] != '1' else data[i + 7],
+                    "tax": data[i + 9] if data[i] != '1' else data[i + 8],
+                    "extended_value": data[i + 10] if data[i] != '1' else data[i + 9],
+                    "type": pdf_type
+            }
+            items.append(item)
+            i += 9 if data[i] == '1' else 8
+        else:
+            i += 1
+
+
+    return {
+        "invoice_details": invoice_details,
+        "invoice_items": items
+    }
 @app.route('/convert-pdf', methods=['POST'])
 def convert_pdf():
     if 'file' not in request.files:
@@ -583,10 +675,14 @@ def convert_pdf():
     if not file.filename.endswith(".pdf"):
         return jsonify({'error': 'Invalid file format'}), 400
 
+    # Detect PDF type dynamically
+    pdf_type = detect_pdf_type(file)
+
     # Extract data from the uploaded PDF using the selected type
     pdf_type_to_function_and_template = {
-        'detailed': (extract_invoice_Gordon_detailed, "template1"),
-        'default': (extract_invoice_Gordon, "template2")
+        'detailed': extract_invoice_detailed(file),
+        'non-detailed': extract_invoice_non_detailed(file),
+        'Sysco': (extract_invoice_Sysco, "Sysco")
     }
 
     # Get the corresponding function and template based on pdf_type
@@ -618,11 +714,18 @@ def process_pdfs():
         if files.endswith(".pdf"):
             file_path = os.path.join(path, files)
             with open(file_path, 'rb') as pdf_file:
-                extracted_data = extract_invoice_from_pdf(pdf_file)
+                pdf_type = detect_pdf_type(pdf_file)
+                if pdf_type == 'detailed':
+                    extracted_data = extract_invoice_detailed(pdf_file)
+                elif pdf_type == 'non-detailed':
+                    extracted_data = extract_invoice_non_detailed(pdf_file)
+                else:
+                    extracted_data = {'error': f'Could not determine type for {files}'}
+                
                 all_invoices.append(extracted_data)
 
                 # Save extracted data as a JSON file
-                invoice_number = extracted_data['invoice_details'].get('invoice_number', 'unknown_invoice')
+                invoice_number = extracted_data.get('invoice_details', {}).get('invoice_number', 'unknown_invoice')
                 json_filename = f'{path}/{invoice_number}.json'
                 with open(json_filename, 'w') as json_file:
                     json.dump(extracted_data, json_file, indent=4)
