@@ -520,12 +520,12 @@ def extract_invoice_detailed(file):
         for line in data:
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["Product Total"] = dt[0].split()[-1].replace('$','')
-                invoice_details["Misc"] = dt[1].split()[-1].replace('$','')
-                invoice_details["Sub Total"] = dt[2].split()[-1].replace('$','')
+                invoice_details["product_total"] = dt[0].split()[-1].replace('$','')
+                invoice_details["misc"] = dt[1].split()[-1].replace('$','')
+                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','')
                 try :
-                    invoice_details["Tax 1"] = dt[3].split()[-1].replace('$','')
-                    invoice_details["Tax 2"] = dt[4].split()[-1].replace('$','')
+                    invoice_details["tax_1"] = dt[3].split()[-1].replace('$','')
+                    invoice_details["tax_2"] = dt[4].split()[-1].replace('$','')
                 except IndexError :
                     pass
             if "Invoice Total" in line :
@@ -577,7 +577,7 @@ def extract_invoice_detailed(file):
                     "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
                     "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
                     "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
-                    "inv_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
+                    "invent_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
                     "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
                     "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
                     "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
