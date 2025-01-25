@@ -533,9 +533,6 @@ def extract_invoice_non_detailed(file):
 
 # Function to extract detailed invoices
 def extract_invoice_detailed(file):
-    items = []
-    parsed_items = []
-    i = 0
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
@@ -545,7 +542,8 @@ def extract_invoice_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
-
+            if 'Due Date' in line:
+                invoice_details['due_date'] = line.split(' ')[2]
             if any('Gordon Food Service Inc' in line for line in text.split('\n')):
                 invoice_details['seller_name'] = 'Gordon Food Service Inc'
             else:
@@ -573,20 +571,20 @@ def extract_invoice_detailed(file):
         for line in data:
             if "Product Total" in line:
                 dt = line.split('\n')
-                # invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
-                # invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
-                # invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
+                invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
+                invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
+                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
                 try :
                     invoice_details["tax_1"] = dt[3].split()[-1].replace('$','').replace(',', '')
                     invoice_details["tax_2"] = dt[4].split()[-1].replace('$','').replace(',', '')
                 except IndexError :
                     pass
-            if "Product Total" in line :
-                invoice_details["product_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
-            if "Misc" in line :
-                invoice_details["misc"] = line.split(" ")[-1].replace('$','').replace(',', '')
-            if "SubTotal" in line :
-                invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
+            # if "Product Total" in line :
+            #     invoice_details["product_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
+            # if "Misc" in line :
+            #     invoice_details["misc"] = line.split(" ")[-1].replace('$','').replace(',', '')
+            # if "SubTotal" in line :
+            #     invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
 
@@ -628,39 +626,58 @@ def extract_invoice_detailed(file):
             item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
             if item_code_match:
             # if len(data[i]) == 6 and is_valid_item_code(data[i]):
+                # item = {
+                #     "item_code": data[i],
+                #     "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
+                #     "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                #     "unit": filter_unit(data[i+2]) if len(data[i+3].split(" ")) != 1 else data[i+3],
+                #     "pack": filter_out_pack(data[i + 4]) if " " not in data[i + 1] else filter_out_pack(data[i + 3]),
+                #     "size": filter_out_size(data[i + 4]) if " " not in data[i + 1] else filter_out_size(data[i + 3]),
+                #     "brand": data[i + 4] if len(data[i + 3].split(" ")) != 1 else data[i + 5],
+                #     "item_description": data[i + 5] if len(data[i + 3].split(" ")) != 1 else data[i + 6],
+                #     "category": data[i + 6] if len(data[i + 3].split(" ")) != 1 else data[i + 7],
+                #     "invent_value": data[i + 7] if len(data[i + 3].split(" ")) != 1 else data[i + 8],
+                #     "unit_price": data[i + 8] if len(data[i + 3].split(" ")) != 1 else data[i + 9],
+                #     "spec": data[i + 9] if len(data[i + 3].split(" ")) != 1 else data[i + 10],
+                #     "tax": data[i + 10] if len(data[i + 3].split(" ")) != 1 else data[i + 11],
+                #     "extended_value": data[i + 11] if len(data[i + 3].split(" ")) != 1 else data[i + 12],
+                #     "type": "detailed",
+                #     # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
+                #     # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
+                #     # "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
+                #     # "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                #     # "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
+                #     # "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
+                #     # "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
+                #     # "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
+                #     # "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
+                #     # "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
+                #     # "invent_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
+                #     # "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
+                #     # "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
+                #     # "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
+                #     # "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
+                # }
                 item = {
                     "item_code": data[i],
-                    "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
-                    "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                    "unit": filter_unit(data[i+2]) if len(data[i+3].split(" ")) != 1 else data[i+3],
-                    "pack": filter_out_pack(data[i + 4]) if " " not in data[i + 1] else filter_out_pack(data[i + 3]),
-                    "size": filter_out_size(data[i + 4]) if " " not in data[i + 1] else filter_out_size(data[i + 3]),
-                    "brand": data[i + 4] if len(data[i + 3].split(" ")) != 1 else data[i + 5],
-                    "item_description": data[i + 5] if len(data[i + 3].split(" ")) != 1 else data[i + 6],
-                    "category": data[i + 6] if len(data[i + 3].split(" ")) != 1 else data[i + 7],
-                    "invent_value": data[i + 7] if len(data[i + 3].split(" ")) != 1 else data[i + 8],
-                    "unit_price": data[i + 8] if len(data[i + 3].split(" ")) != 1 else data[i + 9],
-                    "spec": data[i + 9] if len(data[i + 3].split(" ")) != 1 else data[i + 10],
-                    "tax": data[i + 10] if len(data[i + 3].split(" ")) != 1 else data[i + 11],
-                    "extended_value": data[i + 11] if len(data[i + 3].split(" ")) != 1 else data[i + 12],
-                    "type": "detailed",
                     # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
                     # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
-                    # "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
-                    # "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                    # "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
-                    # "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
-                    # "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
-                    # "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
-                    # "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
-                    # "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
-                    # "invent_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
-                    # "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
-                    # "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
-                    # "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
-                    # "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
+                    # "qty_ship": float(data[i + 2].split(" ")[0] if " " not in data[i + 2] else (data[i + 2]).split(" ")[0]),
+                    "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
+                    "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                    "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
+                    "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
+                    "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
+                    "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
+                    "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
+                    "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
+                    "inv_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
+                    "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
+                    "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
+                    "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
+                    "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
+                    "type": "detailed",
                 }
-                
                 parsed_items.append(item)
                 if " " not in data[i+1]:
                     i += 12 if len(data[i + 3].split(" ")) != 1 else 13
