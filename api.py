@@ -513,6 +513,7 @@ def extract_invoice_non_detailed(file):
                         "unit_price" : safe_float(data[i+7]),
                         "tax" : safe_float(data[i+8]),
                         "extended_price" : safe_float(data[i+9]),
+                        "type": "non-detailed"
                     })
                     parsed_items.append(item)
                     i+=10
@@ -572,14 +573,20 @@ def extract_invoice_detailed(file):
         for line in data:
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
-                invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
-                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
+                # invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
+                # invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
+                # invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
                 try :
                     invoice_details["tax_1"] = dt[3].split()[-1].replace('$','').replace(',', '')
                     invoice_details["tax_2"] = dt[4].split()[-1].replace('$','').replace(',', '')
                 except IndexError :
                     pass
+            if "Product Total" in line :
+                invoice_details["product_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
+            if "Misc" in line :
+                invoice_details["misc"] = line.split(" ")[-1].replace('$','').replace(',', '')
+            if "SubTotal" in line :
+                invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
 
@@ -623,7 +630,6 @@ def extract_invoice_detailed(file):
             # if len(data[i]) == 6 and is_valid_item_code(data[i]):
                 item = {
                     "item_code": data[i],
-                    "item_code": data[i],
                     "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
                     "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
                     "unit": filter_unit(data[i+2]) if len(data[i+3].split(" ")) != 1 else data[i+3],
@@ -637,7 +643,7 @@ def extract_invoice_detailed(file):
                     "spec": data[i + 9] if len(data[i + 3].split(" ")) != 1 else data[i + 10],
                     "tax": data[i + 10] if len(data[i + 3].split(" ")) != 1 else data[i + 11],
                     "extended_value": data[i + 11] if len(data[i + 3].split(" ")) != 1 else data[i + 12],
-                
+                    "type": "detailed",
                     # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
                     # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
                     # "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
