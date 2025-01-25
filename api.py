@@ -426,14 +426,14 @@ def detect_pdf_type(file):
     """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
     Returns 'detailed' or 'non-detailed'."""
     first_page = pdf.pages[0]
-        text = first_page.extract_text()
-        print(f"Extracted text for detection: {text}")  # Debugging
+    text = first_page.extract_text()
+        # print(f"Extracted text for detection: {text}")  # Debugging
 
-        # Check for Sysco-specific identifiers
-        if any('SYSCO' in line.upper() for line in text.split('\n')):
-            return 'Sysco'
+    # Check for Sysco-specific identifiers
+    if any('SYSCO' in line.upper() for line in text.split('\n')):
+        return 'Sysco'
 
-        # Check for detailed/non-detailed based on table structure
+    # Check for detailed/non-detailed based on table structure
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
             tables = page.extract_tables()
