@@ -402,6 +402,22 @@ from collections import OrderedDict
 app = Flask(__name__)
 CORS(app)
 
+def safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+def is_valid_item_code(value):
+    """
+    Validate if the item_code is a string or an integer but not a float.
+    """
+    if isinstance(value, str) and value.isdigit():
+        return True  # Valid integer as string
+    if isinstance(value, int):
+        return True  # Valid integer
+    return False  # Invalid if it's a float or something else
+
 # Define the fallback function
 def default_function(file):
     return {'error': 'Unknown PDF type'}
@@ -409,18 +425,27 @@ def default_function(file):
 def detect_pdf_type(file):
     """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
     Returns 'detailed' or 'non-detailed'."""
+    first_page = pdf.pages[0]
+        text = first_page.extract_text()
+        print(f"Extracted text for detection: {text}")  # Debugging
+
+        # Check for Sysco-specific identifiers
+        if any('SYSCO' in line.upper() for line in text.split('\n')):
+            return 'Sysco'
+
+        # Check for detailed/non-detailed based on table structure
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
             tables = page.extract_tables()
             if tables:
                 # Check the first table
-                first_table = tables[1]
+                first_table = tables[0]
                 print(first_table)
                 if len(first_table[0]) > 10:  # Adjust column count threshold as needed
                     return 'detailed'
                 else:
                     return 'non-detailed'
-    return 'unknown'  # If no tables are found
+    return 'unknown'  # If no tables or identifiers are found
 
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_non_detailed(file):
@@ -434,7 +459,12 @@ def extract_invoice_non_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]
-
+            if 'Due Date' in line:
+                invoice_details['due_date'] = line.split(' ')[2]
+            if any('Gordon Food Service Inc' in line for line in text.split('\n')):
+                invoice_details['due_date'] = 'Gordon Food Service Inc'
+            else:
+                invoice_details['due_date'] = 'UNKNOWN'
         match = re.search(r'Invoice\s+(\d+)', text)
         if match:
             invoice_details['invoice_number'] = match.group(1)
@@ -454,19 +484,29 @@ def extract_invoice_non_detailed(file):
                     if row:
                         data += row
         
+        for line in data:
+            if "SubTotal" in line:
+                dt = line.split('\n')
+                invoice_details["sub_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
+            if "Invoice Total" in line :
+                invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
+
         # Parse invoice items
         def parse_invoice_data(data):
             items = []
             parsed_items = []
             i = 0
             while i < len(data):
-                if len(data[i]) == 6:  # Adjust this condition based on table structure
+                if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
                     item = OrderedDict({
                         "item_code": data[i],
                         "spec" : data[i+1],
-                        "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
-                        "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],
-                        "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],
+                        # "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
+                        "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                        # "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],
+                        "unit": data[i + 3],
+                        # "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],
+                        "item_description": data[i + 4],
                         "category" : data[i+5],
                         "invent_value" : data[i+6],
                         "unit_price" : data[i+7],
@@ -480,13 +520,16 @@ def extract_invoice_non_detailed(file):
             return parsed_items
 
         invoice_items = parse_invoice_data(data)
+        # Calculate total of qty_ship
+        qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
+        invoice_details['qty_ship_total'] = qty_ship_total
 
     return {
         "invoice_details": invoice_details,
         "invoice_items": invoice_items
     }
 
-# API route to handle single PDF upload and processing
+# Function to extract detailed invoices
 def extract_invoice_detailed(file):
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
@@ -497,7 +540,13 @@ def extract_invoice_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]
-    
+            if 'Due Date' in line:
+                invoice_details['due_date'] = line.split(' ')[2]
+            if any('Gordon Food Service Inc' in line for line in text.split('\n')):
+                invoice_details['due_date'] = 'Gordon Food Service Inc'
+            else:
+                invoice_details['due_date'] = 'UNKNOWN'
+
         match = re.search(r'Invoice\s+(\d+)', text)
         if match:
             invoice_details['invoice_number'] = match.group(1)
@@ -520,16 +569,16 @@ def extract_invoice_detailed(file):
         for line in data:
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["product_total"] = dt[0].split()[-1].replace('$','')
-                invoice_details["misc"] = dt[1].split()[-1].replace('$','')
-                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','')
+                invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
+                invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
+                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
                 try :
-                    invoice_details["tax_1"] = dt[3].split()[-1].replace('$','')
-                    invoice_details["tax_2"] = dt[4].split()[-1].replace('$','')
+                    invoice_details["tax_1"] = dt[3].split()[-1].replace('$','').replace(',', '')
+                    invoice_details["tax_2"] = dt[4].split()[-1].replace('$','').replace(',', '')
                 except IndexError :
                     pass
             if "Invoice Total" in line :
-                invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','')
+                invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
 
     def filter_qty_ship(data):
         data = data.split(" ")
@@ -566,11 +615,13 @@ def extract_invoice_detailed(file):
         i = 0
 
         while i < len(data):
-            if len(data[i]) == 6 and data[i].isdigit():
+            if len(data[i]) == 6 and is_valid_item_code(data[i]):
                 item = {
                     "item_code": data[i],
-                    "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
-                    "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
+                    # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
+                    # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
+                    "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
+                    "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
                     "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
                     "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
                     "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
@@ -598,13 +649,15 @@ def extract_invoice_detailed(file):
         return parsed_items
 
     invoice_items = parse_invoice_data(data)
+    qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
+    invoice_details['qty_ship_total'] = qty_ship_total
 
     return {
     "invoice_details": invoice_details,
     "invoice_items": invoice_items
     }
 
-def extract_invoice_Sysco(file,pdf_type="Sysco"):
+def extract_invoice_Sysco(file):
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
@@ -654,7 +707,6 @@ def extract_invoice_Sysco(file,pdf_type="Sysco"):
                     "unit_price": data[i + 8] if data[i] != '1' else data[i + 7],
                     "tax": data[i + 9] if data[i] != '1' else data[i + 8],
                     "extended_value": data[i + 10] if data[i] != '1' else data[i + 9],
-                    "type": pdf_type
             }
             items.append(item)
             i += 9 if data[i] == '1' else 8
