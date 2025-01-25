@@ -459,9 +459,7 @@ def extract_invoice_non_detailed(file):
         # Extract invoice number and date
         for line in text.split('\n'):
             if 'Invoice Date' in line:
-                invoice_details['invoice_date'] = line.split(' ')[2]
-            if 'Due Date' in line:
-                invoice_details['due_date'] = line.split(' ')[2]
+                invoice_details['invoice_date'] = line.split(' ')[2]            
             if any('Gordon Food Service Inc' in line for line in text.split('\n')):
                 invoice_details['seller_name'] = 'Gordon Food Service Inc'
             else:
@@ -491,7 +489,9 @@ def extract_invoice_non_detailed(file):
                 invoice_details["sub_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
-
+            if 'Due Date' in line:
+                invoice_details['due_date'] = line.split(' ')[2]
+                
         # Parse invoice items
         def parse_invoice_data(data):
             items = []
