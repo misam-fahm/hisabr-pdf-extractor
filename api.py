@@ -440,9 +440,9 @@ def detect_pdf_type(file):
             tables = page.extract_tables()
             if tables:
                 # Check the first table
-                first_table = tables[0]
+                first_table = tables[1]
                 print(first_table)
-                if len(first_table[0]) > 10:  # Adjust column count threshold as needed
+                if len(first_table[1]) > 10:  # Adjust column count threshold as needed
                     return 'detailed'
                 else:
                     return 'non-detailed'
