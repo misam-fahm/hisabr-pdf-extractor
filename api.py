@@ -532,6 +532,9 @@ def extract_invoice_non_detailed(file):
 
 # Function to extract detailed invoices
 def extract_invoice_detailed(file):
+    items = []
+    parsed_items = []
+    i = 0
     invoice_details = {}
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
@@ -615,36 +618,50 @@ def extract_invoice_detailed(file):
         i = 0
 
         while i < len(data):
-            if len(data[i]) == 6 and is_valid_item_code(data[i]):
+            item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
+            if item_code_match:
+            # if len(data[i]) == 6 and is_valid_item_code(data[i]):
                 item = {
                     "item_code": data[i],
-                    # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
-                    # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
+                    "item_code": data[i],
                     "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
                     "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                    "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
-                    "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
-                    "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
-                    "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
-                    "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
-                    "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
-                    "invent_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
-                    "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
-                    "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
-                    "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
-                    "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
+                    "unit": filter_unit(data[i+2]) if len(data[i+3].split(" ")) != 1 else data[i+3],
+                    "pack": filter_out_pack(data[i + 4]) if " " not in data[i + 1] else filter_out_pack(data[i + 3]),
+                    "size": filter_out_size(data[i + 4]) if " " not in data[i + 1] else filter_out_size(data[i + 3]),
+                    "brand": data[i + 4] if len(data[i + 3].split(" ")) != 1 else data[i + 5],
+                    "item_description": data[i + 5] if len(data[i + 3].split(" ")) != 1 else data[i + 6],
+                    "category": data[i + 6] if len(data[i + 3].split(" ")) != 1 else data[i + 7],
+                    "invent_value": data[i + 7] if len(data[i + 3].split(" ")) != 1 else data[i + 8],
+                    "unit_price": data[i + 8] if len(data[i + 3].split(" ")) != 1 else data[i + 9],
+                    "spec": data[i + 9] if len(data[i + 3].split(" ")) != 1 else data[i + 10],
+                    "tax": data[i + 10] if len(data[i + 3].split(" ")) != 1 else data[i + 11],
+                    "extended_value": data[i + 11] if len(data[i + 3].split(" ")) != 1 else data[i + 12],
+                
+                    # "qty_ord":data[i+1] if " " not in data[i+1] else data[i+1].split(" ")[0],
+                    # "qty_ship":(filter_qty_ship(data[i+2]) if " " not in data[i+1] else (data[i+1]).split(" ")[0]),
+                    # "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
+                    # "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                    # "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
+                    # "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
+                    # "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
+                    # "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
+                    # "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
+                    # "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
+                    # "invent_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
+                    # "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
+                    # "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
+                    # "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
+                    # "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
                 }
                 
                 parsed_items.append(item)
                 if " " not in data[i+1]:
-                    if len(data[i+3].split(" ")) != 1:
-                        i+=12
-                    else:
-                        i+=13
+                    i += 12 if len(data[i + 3].split(" ")) != 1 else 13
                 else:
-                    i+=12
-                    
+                    i += 12
             else:
+                print(f"Skipping invalid row: {data[i]}")
                 i += 1
         return parsed_items
 
