@@ -492,10 +492,10 @@ def extract_invoice_non_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
-            if 'Gordon Food Service Inc' in line:
-                invoice_details['seller_name'] = 'Gordon Food Service Inc'
-            else:
-                invoice_details['seller_name'] = 'UNKNOWN'
+        if 'Gordon Food Service Inc' in text:
+            invoice_details['seller_name'] = 'Gordon Food Service Inc'
+        else:
+            invoice_details['seller_name'] = 'UNKNOWN'
         match = re.search(r'Invoice\s+(\d+)', text)
         if match:
             invoice_details['invoice_number'] = match.group(1)
