@@ -448,6 +448,28 @@ def detect_pdf_type(file):
                     return 'non-detailed'
     return 'unknown'  # If no tables or identifiers are found
 
+def extract_total_tax(file):
+    total_tax = 0.0
+    with pdfplumber.open(file) as pdf:
+        last_page = pdf.pages[-1]
+        text = last_page.extract_text()
+        
+        # Regular expression to find lines that have 'Tax' and a number pattern
+        tax_pattern = r'Tax\s*-\s*[\d.]+(?:\s*[\d.]+)'  # Match 'Tax - 4.00 $1.48' type format
+        
+        # Find all tax matches in the text
+        matches = re.findall(tax_pattern, text)
+        
+        # Loop through the matches and sum up the second number (the tax amount)
+        for match in matches:
+            # Extract the tax amount from the match (after the $ symbol)
+            match_parts = match.split()
+            if len(match_parts) >= 2:
+                tax_amount = match_parts[-1].replace('$', '').replace(',', '')  # Remove $ and commas
+                total_tax += safe_float(tax_amount)
+    
+    return total_tax
+
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_non_detailed(file):
     invoice_details = {}
@@ -460,7 +482,7 @@ def extract_invoice_non_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
-            if any('Gordon Food Service Inc' in line for line in text.split('\n')):
+            if 'Gordon Food Service Inc' in line:
                 invoice_details['seller_name'] = 'Gordon Food Service Inc'
             else:
                 invoice_details['seller_name'] = 'UNKNOWN'
@@ -479,9 +501,8 @@ def extract_invoice_non_detailed(file):
                     for cell in row:
                         if cell is not None:
                             cleaned_data.append(cell)
-                    row = cleaned_data
-                    if row:
-                        data += row
+                    if cleaned_data:
+                        data.append(cleaned_data)
         
         for line in data:
             if "SubTotal" in line:
@@ -489,16 +510,20 @@ def extract_invoice_non_detailed(file):
                 invoice_details["sub_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
-            if 'Due Date' in line:
-                invoice_details['due_date'] = line.split(' ')[2]
-                
+        
+        due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
+        if due_date_match:
+            invoice_details['due_date'] = due_date_match.group(1)
+
         # Parse invoice items
         def parse_invoice_data(data):
             items = []
             parsed_items = []
             i = 0
             while i < len(data):
-                if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
+                item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
+                # if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
+                if item_code_match:
                     item = OrderedDict({
                         "item_code": data[i],
                         "spec" : data[i+1],
@@ -543,7 +568,14 @@ def extract_invoice_detailed(file):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
             if 'Due Date' in line:
-                invoice_details['due_date'] = line.split(' ')[2]
+                due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
+                if due_date_match:
+                    invoice_details['due_date'] = due_date_match.group(1)
+                # parts = line.split(' ')
+                # for part in parts:
+                #     if re.match(r'\d{2}/\d{2}/\d{4}', part):  # Match MM/DD/YYYY format
+                #         invoice_details['due_date'] = part
+                #         break
             if any('Gordon Food Service Inc' in line for line in text.split('\n')):
                 invoice_details['seller_name'] = 'Gordon Food Service Inc'
             else:
@@ -571,9 +603,9 @@ def extract_invoice_detailed(file):
         for line in data:
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["product_total"] = dt[0].split()[-1].replace('$','').replace(',', '')
-                invoice_details["misc"] = dt[1].split()[-1].replace('$','').replace(',', '')
-                invoice_details["sub_total"] = dt[2].split()[-1].replace('$','').replace(',', '')
+                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
+                invoice_details["misc"] = safe_float(dt[1].split()[-1].replace('$','').replace(',', ''))
+                invoice_details["sub_total"] = safe_float(dt[2].split()[-1].replace('$','').replace(',', ''))
                 try :
                     invoice_details["tax_1"] = dt[3].split()[-1].replace('$','').replace(',', '')
                     invoice_details["tax_2"] = dt[4].split()[-1].replace('$','').replace(',', '')
@@ -586,8 +618,8 @@ def extract_invoice_detailed(file):
             # if "SubTotal" in line :
             #     invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
             if "Invoice Total" in line :
-                invoice_details["invoice_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
-
+                invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
+    invoice_details["tax"] = extract_total_tax(file)
     def filter_qty_ship(data):
         data = data.split(" ")
         if len(data)>=2:
@@ -671,11 +703,11 @@ def extract_invoice_detailed(file):
                     "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
                     "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
                     "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
-                    "inv_value":(data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7],
-                    "unit_price":(data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8],
+                    "invent_value":safe_float((data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7]),
+                    "unit_price":safe_float((data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8]),
                     "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
-                    "tax":(data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10],
-                    "extended_value":(data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11],
+                    "tax":safe_float((data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10]),
+                    "extended_value":safe_float((data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11]),
                     "type": "detailed",
                 }
                 parsed_items.append(item)
