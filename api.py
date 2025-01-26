@@ -521,10 +521,6 @@ def extract_invoice_non_detailed(file):
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
         
-        due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
-        if due_date_match:
-            invoice_details['due_date'] = due_date_match.group(1)
-
         # Parse invoice items
         def parse_invoice_data(data):
             items = []
@@ -560,6 +556,8 @@ def extract_invoice_non_detailed(file):
         # Calculate total of qty_ship
         qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
         invoice_details['qty_ship_total'] = qty_ship_total
+        invoice_details["tax"] = extract_total_tax(file)
+        invoice_details['due_date'] = extract_invoice_due_date(file)
 
     return {
         "invoice_details": invoice_details,
