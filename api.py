@@ -527,9 +527,9 @@ def extract_invoice_non_detailed(file):
             parsed_items = []
             i = 0
             while i < len(data):
-                # item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
-                if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
-                # if item_code_match:
+                item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
+                # if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
+                if item_code_match:
                     item = OrderedDict({
                         "item_code": data[i],
                         "spec" : data[i+1],
@@ -556,8 +556,8 @@ def extract_invoice_non_detailed(file):
         # Calculate total of qty_ship
         qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
         invoice_details['qty_ship_total'] = qty_ship_total
-        invoice_details["tax"] = extract_total_tax(file)
-        invoice_details['due_date'] = extract_invoice_due_date(file)
+    invoice_details["tax"] = extract_total_tax(file)
+    invoice_details['due_date'] = extract_invoice_due_date(file)
 
     return {
         "invoice_details": invoice_details,
