@@ -527,9 +527,10 @@ def extract_invoice_non_detailed(file):
             parsed_items = []
             i = 0
             while i < len(data):
-                if isinstance(data[i], str):
+                if data[i]:
                 # item_code = str(data[i]).strip()
-                    item_code_match = re.match(r'^\s*(\d{6})\s*$', data[i].strip())
+                    item_code_cell = data[i].replace('\n', '').strip()
+                    item_code_match = re.match(r'^\s*(\d{6})\s*$', item_code_cell)
                 # item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
                 # if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
                     if item_code_match:
