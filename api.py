@@ -527,7 +527,9 @@ def extract_invoice_non_detailed(file):
             parsed_items = []
             i = 0
             while i < len(data):
-                item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
+                item_code = str(data[i]).strip()
+                item_code_match = re.match(r'^\d{6}$', item_code)
+                # item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
                 # if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
                 if item_code_match:
                     item = OrderedDict({
