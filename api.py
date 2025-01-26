@@ -527,31 +527,32 @@ def extract_invoice_non_detailed(file):
             parsed_items = []
             i = 0
             while i < len(data):
+                if isinstance(data[i], str):
                 # item_code = str(data[i]).strip()
-                item_code_match = re.match(r'^\s*(\d{6})\s*$', data[i].strip())
+                    item_code_match = re.match(r'^\s*(\d{6})\s*$', data[i].strip())
                 # item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
                 # if len(data[i]) == 6 and is_valid_item_code(data[i]):  # Adjust this condition based on table structure
-                if item_code_match:
-                    item = OrderedDict({
-                        "item_code": data[i],
-                        "spec" : data[i+1],
-                        # "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
-                        "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                        # "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],
-                        "unit": data[i + 3],
-                        # "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],
-                        "item_description": data[i + 4],
-                        "category" : data[i+5],
-                        "invent_value" : safe_float(data[i+6]),
-                        "unit_price" : safe_float(data[i+7]),
-                        "tax" : safe_float(data[i+8]),
-                        "extended_price" : safe_float(data[i+9]),
-                        "type": "non-detailed"
-                    })
-                    parsed_items.append(item)
-                    i+=10
-                else:
-                    i += 1
+                    if item_code_match:
+                        item = OrderedDict({
+                            "item_code": data[i],
+                            "spec" : data[i+1],
+                            # "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
+                            "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                            # "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],
+                            "unit": data[i + 3],
+                            # "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],
+                            "item_description": data[i + 4],
+                            "category" : data[i+5],
+                            "invent_value" : safe_float(data[i+6]),
+                            "unit_price" : safe_float(data[i+7]),
+                            "tax" : safe_float(data[i+8]),
+                            "extended_price" : safe_float(data[i+9]),
+                            "type": "non-detailed"
+                        })
+                        parsed_items.append(item)
+                        i+=10
+                    else:
+                        i += 1
             return parsed_items
 
         invoice_items = parse_invoice_data(data)
