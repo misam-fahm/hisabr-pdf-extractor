@@ -453,20 +453,16 @@ def extract_total_tax(file):
     with pdfplumber.open(file) as pdf:
         last_page = pdf.pages[-1]
         text = last_page.extract_text()
-        
+        print(text)
         # Regular expression to find lines that have 'Tax' and a number pattern
         tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
         
         # Find all tax matches in the text
         matches = re.findall(tax_pattern, text)
-        
+        print("Matches found:", matches)
         # Loop through the matches and sum up the second number (the tax amount)
         for match in matches:
-            # Extract the tax amount from the match (after the $ symbol)
-            match_parts = match.split()
-            if len(match_parts) >= 2:
-                tax_amount = match_parts[-1].replace('$', '').replace(',', '')  # Remove $ and commas
-                total_tax += safe_float(tax_amount)
+            total_tax += float(match.replace('$', '').replace(',', ''))
     
     return total_tax
 
