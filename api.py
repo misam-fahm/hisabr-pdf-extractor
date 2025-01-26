@@ -521,6 +521,9 @@ def extract_invoice_non_detailed(file):
                 invoice_details["sub_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
+            if "Product Total" in line:
+                dt = line.split('\n')
+                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
         
         # Parse invoice items
         def parse_invoice_data(data):
@@ -664,9 +667,9 @@ def extract_invoice_detailed(file):
         i = 0
 
         while i < len(data):
-            item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
-            if item_code_match:
-            # if len(data[i]) == 6 and is_valid_item_code(data[i]):
+            # item_code_match = re.match(r'^\d{6}$', data[i])  # 6-digit item code
+            # if item_code_match:
+            if len(data[i]) == 6 and is_valid_item_code(data[i]):
                 # item = {
                 #     "item_code": data[i],
                 #     "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
