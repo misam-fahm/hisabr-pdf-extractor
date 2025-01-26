@@ -455,7 +455,7 @@ def extract_total_tax(file):
         text = last_page.extract_text()
         
         # Regular expression to find lines that have 'Tax' and a number pattern
-        tax_pattern = r'Tax\s*-\s*[\d.]+(?:\s*[\d.]+)'  # Match 'Tax - 4.00 $1.48' type format
+        tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
         
         # Find all tax matches in the text
         matches = re.findall(tax_pattern, text)
@@ -567,10 +567,6 @@ def extract_invoice_detailed(file):
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
-            if 'Due Date' in line:
-                due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
-                if due_date_match:
-                    invoice_details['due_date'] = due_date_match.group(1)
                 # parts = line.split(' ')
                 # for part in parts:
                 #     if re.match(r'\d{2}/\d{2}/\d{4}', part):  # Match MM/DD/YYYY format
@@ -619,6 +615,11 @@ def extract_invoice_detailed(file):
             #     invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
+            if 'Due Date' in line:
+                due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
+                if due_date_match:
+                    invoice_details['due_date'] = due_date_match.group(1)
+
     invoice_details["tax"] = extract_total_tax(file)
     def filter_qty_ship(data):
         data = data.split(" ")
