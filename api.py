@@ -453,18 +453,32 @@ def extract_total_tax(file):
     with pdfplumber.open(file) as pdf:
         last_page = pdf.pages[-1]
         text = last_page.extract_text()
-        print(text)
         # Regular expression to find lines that have 'Tax' and a number pattern
         tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
         
         # Find all tax matches in the text
         matches = re.findall(tax_pattern, text)
-        print("Matches found:", matches)
         # Loop through the matches and sum up the second number (the tax amount)
         for match in matches:
-            total_tax += float(match.replace('$', '').replace(',', ''))
+            total_tax += safe_float(match.replace('$', '').replace(',', ''))
     
     return total_tax
+
+def extract_invoice_due_date(file):
+    with pdfplumber.open(file) as pdf:
+        last_page = pdf.pages[-1]  # Access the last page
+        text = last_page.extract_text()
+
+        # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
+        due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
+
+        # If a match is found, save the due date
+        # if due_date_match:
+        #     invoice_details['due_date'] = due_date_match.group(1)
+        # else:
+        #     invoice_details['due_date'] = "Not Found"  # Fallback if not found
+
+    return due_date_match.group(1) if due_date_match else "Not Found"
 
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_non_detailed(file):
@@ -611,12 +625,13 @@ def extract_invoice_detailed(file):
             #     invoice_details["sub_total"] = line.split(" ")[-1].replace('$','').replace(',', '')
             if "Invoice Total" in line :
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
-            if 'Due Date' in line:
-                due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
-                if due_date_match:
-                    invoice_details['due_date'] = due_date_match.group(1)
+            # if 'Due Date' in line:
+            #     due_date_match = re.search(r'Due Date[:\s]+(\d{2}/\d{2}/\d{4})', text)
+            #     if due_date_match:
+            #         invoice_details['due_date'] = due_date_match.group(1)
 
     invoice_details["tax"] = extract_total_tax(file)
+    invoice_details['due_date'] = extract_invoice_due_date(file)
     def filter_qty_ship(data):
         data = data.split(" ")
         if len(data)>=2:
