@@ -774,29 +774,25 @@ def extract_invoice_Sysco(file):
                     if cleaned_row:
                         data.extend(cleaned_row)
 
-        # Iterate through the pages to extract text
+        # Extract due date, subtotal, tax, and invoice total using refined regex
         for page in pdf.pages:
             text = page.extract_text()
             
             # Extract "PAYABLE ON OR BEFORE" date
-            payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*(\d{2}/\d{2}/\d{2})', text)
+            payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
             if payable_date_match:
                 invoice_details['due_date'] = payable_date_match.group(1)
             
             # Extract SUBTOTAL, TAX, and TOTAL using regex patterns
-            subtotal_match = re.search(r'SUB\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            subtotal_match = re.search(r'SUB\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
             if subtotal_match:
-                invoice_details['subtotal'] = safe_float(sub_total.group(1).replace(',', ''))
+                invoice_details['subtotal'] = safe_float(subtotal_match.group(1).replace(',', ''))
                 
-            tax_match = re.search(r'TAX\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            tax_match = re.search(r'TAX\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
             if tax_match:
                 invoice_details['tax'] = safe_float(tax_match.group(1).replace(',', ''))
                 
-            # total_match = re.search(r'TOTAL\s*([\d,]+\.\d{2})', text)
-            # if total_match:
-            #     invoice_details['total'] = float(total_match.group(1).replace(',', ''))
-                
-            invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
             if invoice_total_match:
                 invoice_details['invoice_total'] = safe_float(invoice_total_match.group(1).replace(',', ''))
 
