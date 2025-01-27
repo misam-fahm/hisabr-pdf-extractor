@@ -483,9 +483,9 @@ def extract_invoice_due_date(file, type="gordon"):
 
         # return due_date_match.group(1) if due_date_match else "Not Found"
         if due_date_match:
-                return due_date_match.group(1)  # Return the matched due date
-            else:
-                return "Not Found"
+            return due_date_match.group(1)  # Return the matched due date
+        else:
+            return "Not Found"
 
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_non_detailed(file):
