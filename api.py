@@ -464,13 +464,16 @@ def extract_total_tax(file):
     
     return total_tax
 
-def extract_invoice_due_date(file):
+def extract_invoice_due_date(file, type="gordon"):
     with pdfplumber.open(file) as pdf:
         last_page = pdf.pages[-1]  # Access the last page
         text = last_page.extract_text()
 
         # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
-        due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
+        if type == "sysco"
+            due_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
+        else
+            due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
 
         # If a match is found, save the due date
         # if due_date_match:
@@ -777,26 +780,27 @@ def extract_invoice_Sysco(file):
         # Extract due date, subtotal, tax, and invoice total using refined regex
         # last_page = pdf.pages[-1]
         # text = last_page.extract_text()
-        for last_page in pdf.pages[-1]:
-            text = last_page.extract_text()
+        invoice_details['due_date'] = extract_invoice_due_date(file, "sysco")
+        # for last_page in pdf.pages[-1]:
+        #     text = last_page.extract_text()
             
-            # Extract "PAYABLE ON OR BEFORE" date
-            payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
-            if payable_date_match:
-                invoice_details['due_date'] = payable_date_match.group(1)
+        #     # Extract "PAYABLE ON OR BEFORE" date
+        #     payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
+        #     if payable_date_match:
+        #         invoice_details['due_date'] = payable_date_match.group(1)
             
-            # Extract SUBTOTAL, TAX, and TOTAL using regex patterns
-            subtotal_match = re.search(r'SUB\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
-            if subtotal_match:
-                invoice_details['subtotal'] = safe_float(subtotal_match.group(1).replace(',', ''))
+        #     # Extract SUBTOTAL, TAX, and TOTAL using regex patterns
+        #     subtotal_match = re.search(r'SUB\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
+        #     if subtotal_match:
+        #         invoice_details['subtotal'] = safe_float(subtotal_match.group(1).replace(',', ''))
                 
-            tax_match = re.search(r'TAX\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
-            if tax_match:
-                invoice_details['tax'] = safe_float(tax_match.group(1).replace(',', ''))
+        #     tax_match = re.search(r'TAX\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
+        #     if tax_match:
+        #         invoice_details['tax'] = safe_float(tax_match.group(1).replace(',', ''))
                 
-            invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
-            if invoice_total_match:
-                invoice_details['invoice_total'] = safe_float(invoice_total_match.group(1).replace(',', ''))
+        #     invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
+        #     if invoice_total_match:
+        #         invoice_details['invoice_total'] = safe_float(invoice_total_match.group(1).replace(',', ''))
 
 
     # Placeholder for parsing Sysco-specific table data
