@@ -471,7 +471,7 @@ def extract_invoice_due_date(file, type="gordon"):
 
         # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
         if type == "sysco":
-            due_date_match = "sysco"
+            due_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
         else:
             due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
 
@@ -483,7 +483,7 @@ def extract_invoice_due_date(file, type="gordon"):
 
         # return due_date_match.group(1) if due_date_match else "Not Found"
         if due_date_match:
-            return due_date_match  # Return the matched due date
+            return due_date_match.group(1)  # Return the matched due date
         else:
             return "Not Found"
 
@@ -780,6 +780,12 @@ def extract_invoice_Sysco(file):
                     cleaned_row = [cell for cell in row if cell is not None]
                     if cleaned_row:
                         data.extend(cleaned_row)
+            # Extract SUBTOTAL, TAX TOTAL, and INVOICE TOTAL using regex
+            subtotal_match = re.search(r'SUB\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            if subtotal_match:
+                invoice_details['subtotal'] = subtotal_match.group(1)
+            else:
+                invoice_details['subtotal'] = "Not Found"
 
         # Extract due date, subtotal, tax, and invoice total using refined regex
         # last_page = pdf.pages[-1]
