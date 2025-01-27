@@ -483,7 +483,7 @@ def extract_invoice_due_date(file, type="gordon"):
 
         # return due_date_match.group(1) if due_date_match else "Not Found"
         if due_date_match:
-            return due_date_match.group(1)  # Return the matched due date
+            return due_date_match  # Return the matched due date
         else:
             return "Not Found"
 
