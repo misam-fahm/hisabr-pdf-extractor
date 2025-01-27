@@ -471,7 +471,7 @@ def extract_invoice_due_date(file, type="gordon"):
 
         # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
         if type == "sysco":
-            due_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
+            due_date_match = "sysco"
         else:
             due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
 
