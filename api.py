@@ -754,12 +754,16 @@ def extract_invoice_Sysco(file):
             
             # Extract date based on pattern or fallback
             date_match = re.search(r'DATE\s*:\s*(\d{2}/\d{2}/\d{2})', text)
-            invoice_details['seller_name'] = pdf_type
+            # invoice_details['seller_name'] = pdf_type
             if date_match:
                 invoice_details['invoice_date'] = date_match.group(1)
             elif 'SIGNED:' in line:
                 invoice_details['invoice_date'] = line.split(' ')[-1]
 
+        if 'SYSCO ATLANTA LLC' in text:
+            invoice_details['seller_name'] = 'SYSCO ATLANTA LLC'
+        else:
+            invoice_details['seller_name'] = 'UNKNOWN'
         # Extract data from tables
         data = []
         for page in pdf.pages:
@@ -791,6 +795,7 @@ def extract_invoice_Sysco(file):
                     "unit_price": data[i + 8] if data[i] != '1' else data[i + 7],
                     "tax": data[i + 9] if data[i] != '1' else data[i + 8],
                     "extended_value": data[i + 10] if data[i] != '1' else data[i + 9],
+                    "type": "sysco",
             }
             items.append(item)
             i += 9 if data[i] == '1' else 8
