@@ -774,6 +774,32 @@ def extract_invoice_Sysco(file):
                     if cleaned_row:
                         data.extend(cleaned_row)
 
+        # Iterate through the pages to extract text
+        for page in pdf.pages:
+            text = page.extract_text()
+            
+            # Extract "PAYABLE ON OR BEFORE" date
+            payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*(\d{2}/\d{2}/\d{2})', text)
+            if payable_date_match:
+                invoice_details['due_date'] = payable_date_match.group(1)
+            
+            # Extract SUBTOTAL, TAX, and TOTAL using regex patterns
+            subtotal_match = re.search(r'SUB\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            if subtotal_match:
+                invoice_details['subtotal'] = safe_float(sub_total.group(1).replace(',', ''))
+                
+            tax_match = re.search(r'TAX\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            if tax_match:
+                invoice_details['tax'] = safe_float(tax_match.group(1).replace(',', ''))
+                
+            # total_match = re.search(r'TOTAL\s*([\d,]+\.\d{2})', text)
+            # if total_match:
+            #     invoice_details['total'] = float(total_match.group(1).replace(',', ''))
+                
+            invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            if invoice_total_match:
+                invoice_details['invoice_total'] = safe_float(invoice_total_match.group(1).replace(',', ''))
+
     # Placeholder for parsing Sysco-specific table data
     # Customize this logic for Sysco's table structure
     items = []
@@ -785,16 +811,16 @@ def extract_invoice_Sysco(file):
             else:  # Adjust based on Sysco table structure
                 item = {
                     "loc": "" if data[i] == '1' else data[i],
-                    "qty": data[i + 1] if data[i] != '1' else data[i],
+                    "qty_ship": safe_float(data[i + 1] if data[i] != '1' else data[i]),
                     # " ": data[i + 2] if data[i] != '1' else data[i + 2],
                     "unit": data[i + 3] if data[i] != '1' else data[i + 2],
                     "pack": data[i + 4] if data[i] != '1' else data[i + 3],
                     "size": data[i + 5] if data[i] != '1' else data[i + 4],
                     "item_description": data[i + 6] if data[i] != '1' else data[i + 5],
                     "item_code": data[i + 7] if data[i] != '1' else data[i + 6],
-                    "unit_price": data[i + 8] if data[i] != '1' else data[i + 7],
-                    "tax": data[i + 9] if data[i] != '1' else data[i + 8],
-                    "extended_value": data[i + 10] if data[i] != '1' else data[i + 9],
+                    "unit_price": safe_float(data[i + 8] if data[i] != '1' else data[i + 7]),
+                    "tax": safe_float(data[i + 9] if data[i] != '1' else data[i + 8]),
+                    "extended_value": safe_float(data[i + 10] if data[i] != '1' else data[i + 9]),
                     "type": "sysco",
             }
             items.append(item)
