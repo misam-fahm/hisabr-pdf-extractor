@@ -775,8 +775,10 @@ def extract_invoice_Sysco(file):
                         data.extend(cleaned_row)
 
         # Extract due date, subtotal, tax, and invoice total using refined regex
-        for page in pdf.pages:
-            text = page.extract_text()
+        # last_page = pdf.pages[-1]
+        # text = last_page.extract_text()
+        for last_page in pdf.pages[-1]:
+            text = last_page.extract_text()
             
             # Extract "PAYABLE ON OR BEFORE" date
             payable_date_match = re.search(r'PAYABLE ON OR BEFORE\s*[:\-]?\s*(\d{2}/\d{2}/\d{2})', text)
@@ -795,6 +797,7 @@ def extract_invoice_Sysco(file):
             invoice_total_match = re.search(r'INVOICE\s*TOTAL\s*[:\-]?\s*([\d,]+\.\d{2})', text)
             if invoice_total_match:
                 invoice_details['invoice_total'] = safe_float(invoice_total_match.group(1).replace(',', ''))
+
 
     # Placeholder for parsing Sysco-specific table data
     # Customize this logic for Sysco's table structure
