@@ -726,7 +726,7 @@ def extract_invoice_detailed(file):
                     "unit_price":safe_float((data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8]),
                     "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
                     "tax":safe_float((data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10]),
-                    "extended_value":safe_float((data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11]),
+                    "extended_price":safe_float((data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11]),
                     "type": "detailed",
                 }
                 parsed_items.append(item)
