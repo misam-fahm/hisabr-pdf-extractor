@@ -1274,7 +1274,7 @@ def convert_pdf():
         mimetype='application/json'
     )
 @app.route('/process-invoice', methods=['POST'])
-def convert_pdf():
+def process_invoice():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
@@ -1310,7 +1310,7 @@ def convert_pdf():
     )
 
 @app.route('/process-sales', methods=['POST'])
-def convert_pdf():
+def process_sales():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
