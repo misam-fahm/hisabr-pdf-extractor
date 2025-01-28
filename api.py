@@ -775,24 +775,24 @@ def extract_sales_data(pdf_path):
     return data
 
 
-# Define the folder path containing PDF files
-pdf_folder_path = "All_PDFs/Second_Phase_PDFs/"
-json_folder_path = "All_JSONs"
+# # Define the folder path containing PDF files
+# pdf_folder_path = "All_PDFs/Second_Phase_PDFs/"
+# json_folder_path = "All_JSONs"
 
-# Loop through all PDF files in the folder
-for filename in os.listdir(pdf_folder_path):
-    if filename.endswith(".pdf"):
-        pdf_path = os.path.join(pdf_folder_path, filename)
-        json_path = os.path.join(json_folder_path, filename.replace(".pdf", ".json"))
+# # Loop through all PDF files in the folder
+# for filename in os.listdir(pdf_folder_path):
+#     if filename.endswith(".pdf"):
+#         pdf_path = os.path.join(pdf_folder_path, filename)
+#         json_path = os.path.join(json_folder_path, filename.replace(".pdf", ".json"))
 
-        # Extract data from the PDF file
-        sales_data = extract_sales_data(pdf_path)
+#         # Extract data from the PDF file
+#         sales_data = extract_sales_data(pdf_path)
 
-        # Save extracted data to a JSON file
-        with open(json_path, "w") as json_file:
-            json.dump(sales_data, json_file, indent=4)
+#         # Save extracted data to a JSON file
+#         with open(json_path, "w") as json_file:
+#             json.dump(sales_data, json_file, indent=4)
 
-        print(f"Extracted data from {filename} and saved to {json_path}")
+#         print(f"Extracted data from {filename} and saved to {json_path}")
 
 def safe_float(value, default=0.0):
     try:
