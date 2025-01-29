@@ -1190,7 +1190,7 @@ def extract_invoice_Sysco(file):
                                 # print(f"Invoice Total: {invoice_details['Invoice Total']}")
                             except ValueError:
                                 pass  # Skip if not a valid number
-    invoice_details["Group_Total"] = 0
+    invoice_details["product_total"] = 0
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
