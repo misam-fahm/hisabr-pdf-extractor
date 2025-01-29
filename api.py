@@ -1278,6 +1278,7 @@ def extract_invoice_Sysco(file):
                     "unit": data[i + 3] if data[i] != '1' else data[i + 2],
                     "pack": data[i + 4] if data[i] != '1' else data[i + 3],
                     "size": data[i + 5] if data[i] != '1' else data[i + 4],
+                    "pack_size": data[i + 4] if data[i] != '1' else data[i + 3] + data[i + 5] if data[i] != '1' else data[i + 4],
                     "item_description": data[i + 6] if data[i] != '1' else data[i + 5],
                     "item_code": data[i + 7] if data[i] != '1' else data[i + 6],
                     "unit_price": safe_float(data[i + 8] if data[i] != '1' else data[i + 7]),
