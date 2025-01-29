@@ -416,6 +416,14 @@ def extract_sales_data(pdf_path):
         for page in pdf.pages:
             text = page.extract_text()
             # print(text)
+            # Extract the '13246' text before 'Watkinsville'
+            location_match = re.search(r'(\d+)\s*- Watikinsville', text)
+            data["store-name"] = location_match.group(1) if location_match else "Not Found"
+
+             # Extract the date 'Sunday, January 1, 2023'
+            date_match = re.search(r'(\w+,\s+\w+\s+\d{1,2},\s+\d{4})', text)
+            data["sales-date"] = date_match.group(1) if date_match else "Not Found"
+
             if "Sales Summary" in text:
                 data["Sale Summary"] = text.split('\n')[0].split("Sales Summary")[-1]
                 data["Date"] = " ".join(text.split('\n')[1].split(" ")[-4:-1])
@@ -426,13 +434,15 @@ def extract_sales_data(pdf_path):
                 # Extract specific sales summary details
                 for line in lines:
                     if "Gross Sales" in line:
-                        data['Gross Sales'] = "$" + line.split("$")[-1].split(" ")[0]
-                        data["Order Count"] = line.split(":")[-1]
+                        data['gross-sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["order-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Net Sales" in line:
-                        data['Net Sales'] = "$" + line.split("$")[-1].split(" ")[0]
-                        data["Guest Count"] = line.split(":")[-1]
+                        data['net-sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["guest-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "order-average" in line:
+                        data['order-average'] = line.split(":")[-1]
                     elif "Total No Sales Count" in line:
-                        data["Total No Sales Count"] = line.split(" ")[-1]
+                        data["total-no-sales-count"] = line.split(" ")[-1]
                     elif "Total Item Sales" in line:
                         data['Total Item Sales'] = "$" + line.split("$")[1].split(" ")[0]
                         data["Taxable Item Sales"] = line.split(":")[-1]
@@ -1272,7 +1282,7 @@ def extract_invoice_Sysco(file):
                     "item_code": data[i + 7] if data[i] != '1' else data[i + 6],
                     "unit_price": safe_float(data[i + 8] if data[i] != '1' else data[i + 7]),
                     "tax": safe_float(data[i + 9] if data[i] != '1' else data[i + 8]),
-                    "extended_value": safe_float(data[i + 10] if data[i] != '1' else data[i + 9]),
+                    "extended_price": safe_float(data[i + 10] if data[i] != '1' else data[i + 9]),
                     "type": "sysco",
             }
             items.append(item)
@@ -1285,6 +1295,7 @@ def extract_invoice_Sysco(file):
         "invoice_details": invoice_details,
         "invoice_items": items
     }
+
 @app.route('/convert-pdf', methods=['POST'])
 def convert_pdf():
     if 'file' not in request.files:
@@ -1369,12 +1380,12 @@ def process_sales():
     # Detect PDF type dynamically
     # pdf_type = detect_pdf_type(file)
 
-    # Extract data from the uploaded PDF using the selected type
-    pdf_type_to_function_and_template = {
-        'detailed': extract_invoice_detailed,
-        'non-detailed': extract_invoice_non_detailed,
-        'Sysco': extract_invoice_Sysco,
-    }
+    # # Extract data from the uploaded PDF using the selected type
+    # pdf_type_to_function_and_template = {
+    #     'detailed': extract_invoice_detailed,
+    #     'non-detailed': extract_invoice_non_detailed,
+    #     'Sysco': extract_invoice_Sysco,
+    # }
 
     # Get the corresponding function and template based on pdf_type
     # extract_function = pdf_type_to_function_and_template.get(pdf_type, default_function)
