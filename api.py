@@ -856,16 +856,13 @@ def extract_total_tax(file):
     
     return total_tax
 
-def extract_invoice_due_date(file, type="gordon"):
+def extract_invoice_due_date(file):
     with pdfplumber.open(file) as pdf:
         last_page = pdf.pages[-1]  # Access the last page
         text = last_page.extract_text()
 
         # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
-        if type == "sysco":
-            due_date_match = re.search(r'PAYABLE ON OR BEFORE\s*\n?\s*(\d{2}/\d{2}/\d{2})', text)
-        else:
-            due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
+        due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
 
         # If a match is found, save the due date
         # if due_date_match:
@@ -1108,26 +1105,29 @@ def extract_invoice_detailed(file):
                     # "qty_ship": float(data[i + 2].split(" ")[0] if " " not in data[i + 2] else (data[i + 2]).split(" ")[0]),
                     "qty_ord": safe_float(data[i + 1].split(" ")[0] if " " in data[i + 1] else data[i + 1]),
                     "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                    "unit":(filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
-                    "pack":(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
-                    "size":(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
-                    "brand":(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
-                    "item_description":(data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
-                    "category":(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
-                    "invent_value":safe_float((data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7]),
-                    "unit_price":safe_float((data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8]),
-                    "spec":(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
-                    "tax":safe_float((data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10]),
-                    "extended_price":safe_float((data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11]),
+                    "unit": (filter_unit(data[i+2]) if len(data[i+3].split(" "))!=1 else data[i+3]) if " " not in data[i+1] else data[i+2].split(" ")[-1],
+                    "pack": (filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
+                    "size": (filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
+                    "pack_size": data[i+4],
+                    "brand": (data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
+                    "item_description": (data[i+5] if len(data[i+3].split(" "))!=1 else data[i+6]) if " " not in data[i+1] else data[i+5],
+                    "category": (data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
+                    "invent_value": safe_float((data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7]),
+                    "unit_price": safe_float((data[i+8] if len(data[i+3].split(" "))!=1 else data[i+9]) if " " not in data[i+1] else data[i+8]),
+                    "spec": (data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
+                    "tax": safe_float((data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10]),
+                    "extended_price": safe_float((data[i+11] if len(data[i+3].split(" "))!=1 else data[i+12]) if " " not in data[i+1] else data[i+11]),
                     "type": "detailed",
                 }
                 parsed_items.append(item)
                 if " " not in data[i+1]:
-                    i += 12 if len(data[i + 3].split(" ")) != 1 else 13
+                    if len(data[i+3].split(" ")) != 1:
+                        i += 12
+                    else:
+                        i += 13
                 else:
                     i += 12
             else:
-                print(f"Skipping invalid row: {data[i]}")
                 i += 1
         return parsed_items
 
@@ -1142,6 +1142,53 @@ def extract_invoice_detailed(file):
 
 def extract_invoice_Sysco(file):
     invoice_details = {}
+    with pdfplumber.open(file) as pdf:
+        first_page = pdf.pages[-1]
+        text = first_page.extract_text()
+        # print(text)
+        for line in text.split('\n'):
+            
+            def parse_float(value):
+                try:
+                    return float(value)
+                except ValueError:
+                    return ""
+
+            if "LAST PAGE" in line:
+                due_date = line.split(' ')[0]
+                invoice_details["due_date"] = due_date
+
+            if "S U B" in line:
+                sub_total = line.split(' ')[-1]
+                invoice_details["Sub Total"] = parse_float(sub_total)
+
+            if "TAX" in line:
+                tax_total = line.split(' ')[-1]
+                invoice_details["Tax Total"] = parse_float(tax_total)
+
+            if "INVOICE" in line:
+                # Search for the number after the word 'INVOICE'
+                words = line.split()
+                for i, word in enumerate(words):
+                    if word.upper() == "INVOICE":
+                        # Check the next word for a valid number
+                        if i + 1 < len(words):
+                            possible_number = words[i + 1]
+                            try:
+                                # Try to convert it to a float
+                                invoice_details["Invoice Total"] = float(possible_number)
+                                print(f"Invoice Total: {invoice_details['Invoice Total']}")
+                            except ValueError:
+                                pass  # Skip if not a valid number
+    invoice_details["Group_Total"] = 0
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text()
+            for line in text.split('\n') :
+                if "GROUP TOTAL**" in line:
+                    num = float(line.split(" ")[-1])
+                    invoice_details["Group_Total"] += num
+
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
         text = first_page.extract_text()
@@ -1172,17 +1219,17 @@ def extract_invoice_Sysco(file):
                     cleaned_row = [cell for cell in row if cell is not None]
                     if cleaned_row:
                         data.extend(cleaned_row)
-            # Extract SUBTOTAL, TAX TOTAL, and INVOICE TOTAL using regex
-            subtotal_match = re.search(r'SUB\s*TOTAL\s*([\d,]+\.\d{2})', text)
-            if subtotal_match:
-                invoice_details['subtotal'] = subtotal_match.group(1)
-            else:
-                invoice_details['subtotal'] = "Not Found"
+            # # Extract SUBTOTAL, TAX TOTAL, and INVOICE TOTAL using regex
+            # subtotal_match = re.search(r'SUB\s*TOTAL\s*([\d,]+\.\d{2})', text)
+            # if subtotal_match:
+            #     invoice_details['subtotal'] = subtotal_match.group(1)
+            # else:
+            #     invoice_details['subtotal'] = "Not Found"
 
         # Extract due date, subtotal, tax, and invoice total using refined regex
         # last_page = pdf.pages[-1]
         # text = last_page.extract_text()
-        invoice_details['due_date'] = extract_invoice_due_date(file, "sysco")
+        # invoice_details['due_date'] = extract_invoice_due_date(file, "sysco")
         # for last_page in pdf.pages[-1]:
         #     text = last_page.extract_text()
             
