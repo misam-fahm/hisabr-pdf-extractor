@@ -964,7 +964,7 @@ def extract_invoice_non_detailed(file):
         # Calculate total of qty_ship
         qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
         invoice_details['qty_ship_total'] = qty_ship_total
-    invoice_details["tax"] = extract_total_tax(file)
+    invoice_details["tax_total"] = extract_total_tax(file)
     invoice_details['due_date'] = extract_invoice_due_date(file)
 
     return {
@@ -1036,7 +1036,7 @@ def extract_invoice_detailed(file):
             #     if due_date_match:
             #         invoice_details['due_date'] = due_date_match.group(1)
 
-    invoice_details["tax"] = extract_total_tax(file)
+    invoice_details["tax_total"] = extract_total_tax(file)
     invoice_details['due_date'] = extract_invoice_due_date(file)
     def filter_qty_ship(data):
         data = data.split(" ")
@@ -1170,11 +1170,11 @@ def extract_invoice_Sysco(file):
 
             if "S U B" in line:
                 sub_total = line.split(' ')[-1]
-                invoice_details["Sub Total"] = parse_float(sub_total)
+                invoice_details["sub_total"] = parse_float(sub_total)
 
             if "TAX" in line:
                 tax_total = line.split(' ')[-1]
-                invoice_details["Tax Total"] = parse_float(tax_total)
+                invoice_details["tax_total"] = parse_float(tax_total)
 
             if "INVOICE" in line:
                 # Search for the number after the word 'INVOICE'
@@ -1186,8 +1186,8 @@ def extract_invoice_Sysco(file):
                             possible_number = words[i + 1]
                             try:
                                 # Try to convert it to a float
-                                invoice_details["Invoice Total"] = float(possible_number)
-                                print(f"Invoice Total: {invoice_details['Invoice Total']}")
+                                invoice_details["invoice_total"] = float(possible_number)
+                                # print(f"Invoice Total: {invoice_details['Invoice Total']}")
                             except ValueError:
                                 pass  # Skip if not a valid number
     invoice_details["Group_Total"] = 0
@@ -1197,7 +1197,7 @@ def extract_invoice_Sysco(file):
             for line in text.split('\n') :
                 if "GROUP TOTAL**" in line:
                     num = float(line.split(" ")[-1])
-                    invoice_details["Group_Total"] += num
+                    invoice_details["product_total"] += num
 
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
