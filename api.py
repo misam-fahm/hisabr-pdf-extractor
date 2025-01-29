@@ -1290,8 +1290,8 @@ def extract_invoice_Sysco(file):
             i += 9 if data[i] == '1' else 8
         else:
             i += 1
-            
-    qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
+
+    qty_ship_total = sum(item['qty_ship'] for item in items)
     invoice_details['qty_ship_total'] = qty_ship_total
 
     return {
