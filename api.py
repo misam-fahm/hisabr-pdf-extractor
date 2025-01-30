@@ -408,6 +408,108 @@ import re
 import os
 
 # Define a function to extract the data
+
+# # Define the folder path containing PDF files
+# pdf_folder_path = "All_PDFs/Second_Phase_PDFs/"
+# json_folder_path = "All_JSONs"
+
+# # Loop through all PDF files in the folder
+# for filename in os.listdir(pdf_folder_path):
+#     if filename.endswith(".pdf"):
+#         pdf_path = os.path.join(pdf_folder_path, filename)
+#         json_path = os.path.join(json_folder_path, filename.replace(".pdf", ".json"))
+
+#         # Extract data from the PDF file
+#         sales_data = extract_sales_data(pdf_path)
+
+#         # Save extracted data to a JSON file
+#         with open(json_path, "w") as json_file:
+#             json.dump(sales_data, json_file, indent=4)
+
+#         print(f"Extracted data from {filename} and saved to {json_path}")
+
+def safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+def is_valid_item_code(value):
+    """
+    Validate if the item_code is a string or an integer but not a float.
+    """
+    if isinstance(value, str) and value.isdigit():
+        return True  # Valid integer as string
+    if isinstance(value, int):
+        return True  # Valid integer
+    return False  # Invalid if it's a float or something else
+
+# Define the fallback function
+def default_function(file):
+    return {'error': 'Unknown PDF type'}
+
+def detect_pdf_type(file):
+    """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
+    Returns 'detailed' or 'non-detailed'."""
+    with pdfplumber.open(file) as pdf:
+        first_page = pdf.pages[0]
+        text = first_page.extract_text()
+            # print(f"Extracted text for detection: {text}")  # Debugging
+
+        # Check for Sysco-specific identifiers
+        if any('SYSCO' in line.upper() for line in text.split('\n')):
+            return 'Sysco'
+
+    # Check for detailed/non-detailed based on table structure
+    # with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            if tables:
+                # Check the first table
+                first_table = tables[1]
+                print(first_table)
+                if len(first_table[1]) > 10:  # Adjust column count threshold as needed
+                    return 'detailed'
+                else:
+                    return 'non-detailed'
+    return 'unknown'  # If no tables or identifiers are found
+
+def extract_total_tax(file):
+    total_tax = 0.0
+    with pdfplumber.open(file) as pdf:
+        last_page = pdf.pages[-1]
+        text = last_page.extract_text()
+        # Regular expression to find lines that have 'Tax' and a number pattern
+        tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
+        
+        # Find all tax matches in the text
+        matches = re.findall(tax_pattern, text)
+        # Loop through the matches and sum up the second number (the tax amount)
+        for match in matches:
+            total_tax += safe_float(match.replace('$', '').replace(',', ''))
+    
+    return total_tax
+
+def extract_invoice_due_date(file):
+    with pdfplumber.open(file) as pdf:
+        last_page = pdf.pages[-1]  # Access the last page
+        text = last_page.extract_text()
+
+        # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
+        due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
+
+        # If a match is found, save the due date
+        # if due_date_match:
+        #     invoice_details['due_date'] = due_date_match.group(1)
+        # else:
+        #     invoice_details['due_date'] = "Not Found"  # Fallback if not found
+
+        # return due_date_match.group(1) if due_date_match else "Not Found"
+        if due_date_match:
+            return due_date_match.group(1)  # Return the matched due date
+        else:
+            return "Not Found"
+
 def extract_sales_data(pdf_path):
     data = {}
 
@@ -440,61 +542,61 @@ def extract_sales_data(pdf_path):
                         data['net-sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
                         data["guest-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "order-average" in line:
-                        data['order-average'] = line.split(":")[-1]
+                        data['order-average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Total No Sales Count" in line:
-                        data["total-no-sales-count"] = line.split(" ")[-1]
+                        data["total-no-sales-count"] = safe_float(line.split(" ")[-1].replace('$', '').replace(',', ''))
                     elif "Total Item Sales" in line:
-                        data['Total Item Sales'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Taxable Item Sales"] = line.split(":")[-1]
-                    elif "+ Cash Tips Received" in line:
-                        data['+ Cash Tips Received'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Non-Taxable Item Sales"] = line.split(":")[-1]
+                        data['total-item-sales'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["taxable-item-sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Cash Tips Received" in line:
+                        data['cash-tips-received'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["non-taxable-item-sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "+ Tax" in line:
-                        data['+ Tax'] = "$" + line.split("$")[1]
-                    elif "+ Surcharges" in line:
-                        data['+ Surcharges'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Deposits Accepted Amount"] = line.split(":")[-1]
+                        data['tax-amt'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
+                    elif "Surcharges" in line:
+                        data['surcharges'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["deposits-accepted-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "+ Cash Deposits Accepted" in line:
-                        data['+ Cash Deposits Accepted'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Deposits Redeemed Amount"] = line.split(":")[-1]
+                        data['cash-deposits-accepted'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["deposits-redeemed-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Deposits Redeemed" in line:
                         data['- Deposits Redeemed'] = "$" + line.split("$")[1]
-                    elif "+ Paid In" in line:
-                        data['+ Paid In'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Labor Cost"] = line.split(":")[-1]
-                    elif "- Paid Out" in line:
-                        data['- Paid Out'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Labor Hours"] = line.split(":")[-1]
+                    elif "Paid In" in line:
+                        data['paid-in'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["labor-cost"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Paid Out" in line:
+                        data['paid-out'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["labor-hours"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Discounts" in line:
-                        data['- Discounts'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Labor Percent"] = line.split(":")[-1]
+                        data['discounts'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["labor-percent"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Promotions" in line:
-                        data['- Promotions'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Sales Per Labor Hour"] = line.split(":")[-1]
-                    elif "- Gift Card Promotions" in line:
-                        data['- Gift Card Promotions'] = "$" + line.split("$")[1]
+                        data['promotions'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["sales-per-labor-hour"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Gift Card Promotions" in line:
+                        data['gift-card-promotions'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
                     elif "- Refunds" in line:
-                        data['- Refunds'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Issue Count"] = line.split(":")[-1]
-                    elif "- Voids" in line:
-                        data['- Voids'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Issue Amount"] = line.split(":")[-1]
-                    elif "- Non-Cash Payments" in line:
-                        data['- Non-Cash Payments'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Reload Count"] = line.split(":")[-1]
-                    elif "+ Non Revenue Items" in line:
-                        data['+ Non Revenue Items'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Reload Amount"] = line.split(":")[-1]
-                    elif "- Cash Back" in line:
-                        data['- Cash Back'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Cash Out Count"] = line.split(":")[-1]
+                        data['refunds'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-issue-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Voids" in line:
+                        data['voids'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-issue-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Non-Cash Payments" in line:
+                        data['non-cash-payments'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-reload-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Non Revenue Items" in line:
+                        data['non-revenue-items'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-reload-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "Cash Back" in line:
+                        data['cash-back-amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-cash-out-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "= Total Cash" in line:
-                        data['= Total Cash'] = "$" + line.split("$")[1].split(" ")[0]
-                        data["Gift Card Cash Out Amount"] = line.split(":")[-1]
+                        data['total-cash-amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift-card-cash-out-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Donation Count" in line:
-                        data['Donation Count'] = line.split(":")[-1]
+                        data['donation-count'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Donation Total" in line:
-                        data['Donation Total'] = line.split(":")[-1]
+                        data['donation-total-amount'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
 
         # Revenue Centers
         # ```python
@@ -784,108 +886,6 @@ def extract_sales_data(pdf_path):
         data["Destinations"] = Destinations
     return data
 
-
-# # Define the folder path containing PDF files
-# pdf_folder_path = "All_PDFs/Second_Phase_PDFs/"
-# json_folder_path = "All_JSONs"
-
-# # Loop through all PDF files in the folder
-# for filename in os.listdir(pdf_folder_path):
-#     if filename.endswith(".pdf"):
-#         pdf_path = os.path.join(pdf_folder_path, filename)
-#         json_path = os.path.join(json_folder_path, filename.replace(".pdf", ".json"))
-
-#         # Extract data from the PDF file
-#         sales_data = extract_sales_data(pdf_path)
-
-#         # Save extracted data to a JSON file
-#         with open(json_path, "w") as json_file:
-#             json.dump(sales_data, json_file, indent=4)
-
-#         print(f"Extracted data from {filename} and saved to {json_path}")
-
-def safe_float(value, default=0.0):
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-def is_valid_item_code(value):
-    """
-    Validate if the item_code is a string or an integer but not a float.
-    """
-    if isinstance(value, str) and value.isdigit():
-        return True  # Valid integer as string
-    if isinstance(value, int):
-        return True  # Valid integer
-    return False  # Invalid if it's a float or something else
-
-# Define the fallback function
-def default_function(file):
-    return {'error': 'Unknown PDF type'}
-
-def detect_pdf_type(file):
-    """Detect whether the PDF is detailed or non-detailed based on the number of columns in the first table.
-    Returns 'detailed' or 'non-detailed'."""
-    with pdfplumber.open(file) as pdf:
-        first_page = pdf.pages[0]
-        text = first_page.extract_text()
-            # print(f"Extracted text for detection: {text}")  # Debugging
-
-        # Check for Sysco-specific identifiers
-        if any('SYSCO' in line.upper() for line in text.split('\n')):
-            return 'Sysco'
-
-    # Check for detailed/non-detailed based on table structure
-    # with pdfplumber.open(file) as pdf:
-        for page in pdf.pages:
-            tables = page.extract_tables()
-            if tables:
-                # Check the first table
-                first_table = tables[1]
-                print(first_table)
-                if len(first_table[1]) > 10:  # Adjust column count threshold as needed
-                    return 'detailed'
-                else:
-                    return 'non-detailed'
-    return 'unknown'  # If no tables or identifiers are found
-
-def extract_total_tax(file):
-    total_tax = 0.0
-    with pdfplumber.open(file) as pdf:
-        last_page = pdf.pages[-1]
-        text = last_page.extract_text()
-        # Regular expression to find lines that have 'Tax' and a number pattern
-        tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
-        
-        # Find all tax matches in the text
-        matches = re.findall(tax_pattern, text)
-        # Loop through the matches and sum up the second number (the tax amount)
-        for match in matches:
-            total_tax += safe_float(match.replace('$', '').replace(',', ''))
-    
-    return total_tax
-
-def extract_invoice_due_date(file):
-    with pdfplumber.open(file) as pdf:
-        last_page = pdf.pages[-1]  # Access the last page
-        text = last_page.extract_text()
-
-        # Use a regex to search for "Due Date" followed by a date in dd/mm/yyyy format
-        due_date_match = re.search(r'Due Date[:\s]*([\d/]{10})', text)
-
-        # If a match is found, save the due date
-        # if due_date_match:
-        #     invoice_details['due_date'] = due_date_match.group(1)
-        # else:
-        #     invoice_details['due_date'] = "Not Found"  # Fallback if not found
-
-        # return due_date_match.group(1) if due_date_match else "Not Found"
-        if due_date_match:
-            return due_date_match.group(1)  # Return the matched due date
-        else:
-            return "Not Found"
-
 # Utility function to extract invoice details and items from a single PDF
 def extract_invoice_non_detailed(file):
     invoice_details = {}
@@ -1160,7 +1160,10 @@ def extract_invoice_Sysco(file):
             
             def parse_float(value):
                 try:
-                    return float(value)
+                    # Attempt to parse the float, remove any spaces and handle hyphen as negative sign
+                    value_new = (value.replace("-",""))
+                    # print(value_new) 
+                    return float(value_new)   
                 except ValueError:
                     return ""
 
@@ -1170,6 +1173,14 @@ def extract_invoice_Sysco(file):
 
             if "S U B" in line:
                 sub_total = line.split(' ')[-1]
+                invoice_details["sub_total"] = parse_float(sub_total)
+
+            if "S UB" in line:
+                # print("this line",line)
+                next_line = text.split('\n')[i + 1]
+                # print("next line",next_line)
+                sub_total = next_line.split(' ')[-1]
+                # print(sub_total)
                 invoice_details["sub_total"] = parse_float(sub_total)
 
             if "TAX" in line:
@@ -1190,6 +1201,17 @@ def extract_invoice_Sysco(file):
                                 # print(f"Invoice Total: {invoice_details['Invoice Total']}")
                             except ValueError:
                                 pass  # Skip if not a valid number
+
+            if "T OT A L" in line:
+                words = line.split()
+                # print(words)
+                prev_line = text.split('\n')[i - 1]
+                # print(prev_line) 
+                if "INVOICE" in prev_line :
+                    invoice_details["invoice_total"] = parse_float(words[-1])
+                else :
+                    print("not found")
+
     invoice_details["product_total"] = 0
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
