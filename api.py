@@ -520,11 +520,11 @@ def extract_sales_data(pdf_path):
             # print(text)
             # Extract the '13246' text before 'Watkinsville'
             location_match = re.search(r'(\d+)\s*- Watikinsville', text)
-            data["store-name"] = location_match.group(1) if location_match else "Not Found"
+            data["store_name"] = location_match.group(1) if location_match else "Not Found"
 
              # Extract the date 'Sunday, January 1, 2023'
             date_match = re.search(r'(\w+,\s+\w+\s+\d{1,2},\s+\d{4})', text)
-            data["sales-date"] = date_match.group(1) if date_match else "Not Found"
+            data["sales_date"] = date_match.group(1) if date_match else "Not Found"
 
             if "Sales Summary" in text:
                 data["Sale Summary"] = text.split('\n')[0].split("Sales Summary")[-1]
@@ -536,67 +536,67 @@ def extract_sales_data(pdf_path):
                 # Extract specific sales summary details
                 for line in lines:
                     if "Gross Sales" in line:
-                        data['gross-sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["order-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['gross_sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["order_count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Net Sales" in line:
-                        data['net-sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["guest-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
-                    elif "order-average" in line:
-                        data['order-average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['net_sales'] = safe_float(line.split("$")[-1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["guest_count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                    elif "order_average" in line:
+                        data['order_average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Total No Sales Count" in line:
-                        data["total-no-sales-count"] = safe_float(line.split(" ")[-1].replace('$', '').replace(',', ''))
+                        data["total_no_sales_count"] = safe_float(line.split(" ")[-1].replace('$', '').replace(',', ''))
                     elif "Total Item Sales" in line:
-                        data['total-item-sales'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["taxable-item-sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['total_item_sales'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["taxable_item_sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Cash Tips Received" in line:
-                        data['cash-tips-received'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["non-taxable-item-sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['cash_tips_received'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["non_taxable_item_sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "+ Tax" in line:
-                        data['tax-amt'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
+                        data['tax_amt'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
                     elif "Surcharges" in line:
                         data['surcharges'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["deposits-accepted-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data["deposits_accepted_amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "+ Cash Deposits Accepted" in line:
-                        data['cash-deposits-accepted'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["deposits-redeemed-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['cash_deposits_accepted'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["deposits_redeemed_amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Deposits Redeemed" in line:
                         data['- Deposits Redeemed'] = "$" + line.split("$")[1]
                     elif "Paid In" in line:
-                        data['paid-in'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["labor-cost"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['paid_in'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["labor_cost"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Paid Out" in line:
-                        data['paid-out'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["labor-hours"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['paid_out'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["labor_hours"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Discounts" in line:
                         data['discounts'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["labor-percent"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data["labor_percent"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "- Promotions" in line:
                         data['promotions'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["sales-per-labor-hour"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data["sales_per_labor_hour"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Gift Card Promotions" in line:
-                        data['gift-card-promotions'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
+                        data['gift_card_promotions'] = safe_float(line.split("$")[1].replace('$', '').replace(',', ''))
                     elif "- Refunds" in line:
                         data['refunds'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-issue-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data["gift_card_issue_count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Voids" in line:
                         data['voids'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-issue-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data["gift_card_issue_amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Non-Cash Payments" in line:
-                        data['non-cash-payments'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-reload-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['non_cash_payments'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift_card_reload_count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Non Revenue Items" in line:
-                        data['non-revenue-items'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-reload-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['non_revenue_items'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift_card_reload_amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Cash Back" in line:
-                        data['cash-back-amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-cash-out-count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['cash_back_amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift_card_cash_out_count"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "= Total Cash" in line:
-                        data['total-cash-amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
-                        data["gift-card-cash-out-amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['total_cash_amount'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
+                        data["gift_card_cash_out_amount"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Donation Count" in line:
-                        data['donation-count'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['donation_count'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Donation Total" in line:
-                        data['donation-total-amount'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        data['donation_total_amount'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
 
         # Revenue Centers
         # ```python
