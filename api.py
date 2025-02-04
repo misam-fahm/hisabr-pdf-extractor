@@ -662,11 +662,11 @@ def extract_sales_data(pdf_path):
                                     words = section_line.split(" ")
                                     tenders = {}  # Create a new dictionary for each revenue center
                                     tenders["name"] = " ".join(words[:-5])
-                                    tenders["quantity"] = words[-5]
-                                    tenders["payments"] = words[-4]
-                                    tenders['tips'] = words[-3]
-                                    tenders['total'] = words[-2]
-                                    tenders['percent'] = words[-1]
+                                    tenders["quantity"] = safe_float(words[-5].replace('$', '').replace(',', ''))
+                                    tenders["payments"] = safe_float(words[-4].replace('$', '').replace(',', ''))
+                                    tenders['tips'] = safe_float(words[-3].replace('$', '').replace(',', ''))
+                                    tenders['total'] = safe_float(words[-2].replace('$', '').replace(',', ''))
+                                    tenders['percent'] = safe_float(words[-1].replace('$', '').replace(',', ''))
                                     # Append the revenue center data to the list
                                     All_Tenders.append(tenders)
         
