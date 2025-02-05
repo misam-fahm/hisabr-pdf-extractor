@@ -896,6 +896,8 @@ def extract_invoice_non_detailed(file):
         text = first_page.extract_text()
         
         # Extract invoice number and date
+        location_match = re.search(r'(\d+)\s*- Watikinsville', text)
+        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -981,6 +983,7 @@ def extract_invoice_detailed(file):
         text = first_page.extract_text()
     
         # Extract invoice number and date
+        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -1156,6 +1159,7 @@ def extract_invoice_Sysco(file):
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[-1]
         text = first_page.extract_text()
+        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         # print(text)
         for line in text.split('\n'):
             
