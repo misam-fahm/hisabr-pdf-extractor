@@ -983,7 +983,7 @@ def extract_invoice_detailed(file):
         text = first_page.extract_text()
     
         # Extract invoice number and date
-        location_match = re.search(r'(\d+)\s*- Watkins?ville', text)
+        location_match = re.search(r'(\d+)\s*- Wat?kinsville', text)
         invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
