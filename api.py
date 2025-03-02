@@ -402,10 +402,10 @@ from collections import OrderedDict
 app = Flask(__name__)
 CORS(app)
 
-import pdfplumber
-import json
-import re
-import os
+# import pdfplumber
+# import json
+# import re
+# import os
 
 # Define a function to extract the data
 
@@ -510,6 +510,9 @@ def extract_invoice_due_date(file):
         else:
             return "Not Found"
 
+def extract_alpha(value):
+    return "".join(c for c in value if c.isalpha())
+    
 def extract_sales_data(pdf_path):
     data = {}
 
@@ -932,7 +935,8 @@ def extract_invoice_non_detailed(file):
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
+                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', '')) if dt[0].split()[-1].replace('$','').replace(',', '') else safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
+                # invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
         
         # Parse invoice items
         def parse_invoice_data(data):
@@ -944,21 +948,36 @@ def extract_invoice_non_detailed(file):
                     item = OrderedDict({
                         "item_code": data[i],
                         "spec" : data[i+1],
-                        # "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
+                        # # "qty_ship" :(data[i+2]).split(" ")[0] if " " in data[i+2] else data[i+2],
+                        # "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
+                        # # "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],                        
+                        # "unit": data[i + 3],
+                        # # "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],                        
+                        # "item_description": data[i + 4],
+                        # "category" : data[i+5],
+                        # "invent_value" : safe_float(data[i+6]),
+                        # "unit_price" : safe_float(data[i+7]),
+                        # "tax" : safe_float(data[i+8]),
+                        # "extended_price" : safe_float(data[i+9]),
                         "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                        # "unit" : (data[i+2]).split(" ")[1] + (data[i+3]).split(" ")[0] if " " in data[i+2] else data[i+3],
-                        "unit": data[i + 3],
-                        # "item_description" : (data[i+3]).split(" ")[1]+(data[i+4]) if " " in data[i+3] else data[i+4],
-                        "item_description": data[i + 4],
-                        "category" : data[i+5],
-                        "invent_value" : safe_float(data[i+6]),
-                        "unit_price" : safe_float(data[i+7]),
-                        "tax" : safe_float(data[i+8]),
-                        "extended_price" : safe_float(data[i+9]),
+                        "unit": extract_alpha(data[i+2].split(" ")[-1])+data[i+3] if not data[i+3].startswith("SE") else (
+                            (data[i+2].split(" ")[1] if " " in data[i+2] else data[i+2]) + data[i+3].split(" ")[0]
+                            if not data[i+2].isdigit() else ""
+                        ),
+                        "item_description": (data[i + 4] if not data[i+3].startswith("SE") else data[i+3].replace("SE","")) if data[i+3].isalnum() else data[i+3].split(" ")[-1]+data[i+4],
+                        "category": data[i + 5] if not data[i+3].startswith("SE") else data[i+4],
+                        "invent_value": data[i + 6] if not data[i+3].startswith("SE") else data[i+5],
+                        "unit_price": data[i + 7] if not data[i+3].startswith("SE") else data[i+6],
+                        "tax": data[i + 8] if not data[i+3].startswith("SE") else data[i+7],
+                        "extended_price": data[i + 9]if not data[i+3].startswith("SE") else data[i+8],
                         "type": "non-detailed"
                     })
                     parsed_items.append(item)
-                    i+=10
+                    # i+=10
+                    if not data[i+3].startswith("SE") :
+                        i += 10
+                    else:
+                        i += 9
                 else:
                     i += 1
             return parsed_items
