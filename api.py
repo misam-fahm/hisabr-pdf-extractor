@@ -935,8 +935,7 @@ def extract_invoice_non_detailed(file):
                 invoice_details["invoice_total"] = safe_float(line.split(" ")[-1].replace('$','').replace(',', ''))
             if "Product Total" in line:
                 dt = line.split('\n')
-                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', '')) if dt[0].split()[-1].replace('$','').replace(',', '') else safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
-                # invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
+                invoice_details["product_total"] = safe_float(dt[0].split()[-1].replace('$','').replace(',', ''))
         
         # Parse invoice items
         def parse_invoice_data(data):
