@@ -1237,6 +1237,35 @@ def extract_invoice_Sysco(file):
                 else :
                     print("not found")
 
+    lines = text.split('\n')
+
+    # Initialize dictionary to store the result
+    # invoice_details = {}
+
+    # Iterate over lines with index
+    for i, line in enumerate(lines):
+        line = line.strip()  # Clean up any leading/trailing whitespace
+
+        # Check if "T OT A L" is in the line
+        if "T OT A L" in line:
+            words = line.split()
+
+            # Ensure there's a previous line to check
+            if i > 0:  # i > 0 means there's a previous line to access
+                prev_line = lines[i - 1].strip()  # Get the previous line
+                next_line = lines[i + 1].strip()
+                if "INVOICE" in prev_line:
+                    print(prev_line)
+                    # Parse the last word from the line (which should be the amount)
+                    invoice_details["invoice_total"] = parse_float(words[-1])
+                    print(f"Invoice Total: {invoice_details['invoice_total']}")
+                elif "S U B" in prev_line or "S UB" in prev_line or "SUB" in prev_line:
+                    invoice_details["sub_total"] = parse_float(words[-1])
+                elif "INVOICE" in next_line:
+                    invoice_details["tax_total"] = parse_float(words[-1])
+            else:
+                print("No previous line found")
+
     invoice_details["product_total"] = 0
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
