@@ -789,7 +789,8 @@ def extract_sales_data(pdf_path):
                     break
 
                 if in_promotions_section:
-                    match = re.match(r"^\s*\$([\W\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", line)
+                    # match = re.match(r"^\s*\$([\W\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", line)
+                    match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", line)
                     if match:
                         words = line.split()
                         if len(words) >= 4:
@@ -847,7 +848,7 @@ def extract_sales_data(pdf_path):
                         if section_line.strip() == "Destinations":
                             break
                         else:
-                            match = re.match(r"^\s*([\W*\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", section_line)
+                            match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", section_line)
                             if match:
                                 first_word = section_line.split(" ")[0]
                                 if "Total" not in first_word and "Name" not in first_word and "Page" not in first_word:
@@ -874,7 +875,7 @@ def extract_sales_data(pdf_path):
                         if section_line.strip() == "Page":
                             break
                         else:
-                            match = re.match(r"^\s*([\W*\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", section_line)
+                            match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", section_line)
                             if match:
                                 first_word = section_line.split(" ")[0]
                                 if "Total" not in first_word and "Name" not in first_word and "Page" not in first_word:
