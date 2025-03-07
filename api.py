@@ -521,9 +521,15 @@ def extract_sales_data(pdf_path):
         for page in pdf.pages:
             text = page.extract_text()
             # print(text)
-            # Extract the '13246' text before 'Watkinsville'
-            location_match = re.search(r'(\d+)\s*- Watikinsville', text)
-            data["store_name"] = location_match.group(1) if location_match else "Not Found"
+            
+            pattern = r"Sales Summary\s+(\d+)"
+            match = re.search(pattern, text)
+
+            if match:
+                data["store_name"] = match.group(1)
+                # print(match.group(1))
+            # location_match = re.search(r'(\d+)\s*- Watikinsville', text)
+            # data["store_name"] = location_match.group(1) if location_match else "Not Found"
 
              # Extract the date 'Sunday, January 1, 2023'
             date_match = re.search(r'(\w+,\s+\w+\s+\d{1,2},\s+\d{4})', text)
@@ -795,7 +801,7 @@ def extract_sales_data(pdf_path):
                         words = line.split()
                         if len(words) >= 4:
                             if "Name" not in words and "Page" not in words and "Total" not in words and "Sales Summary" not in line and "UTC" not in line:
-                                print(line,index)
+                                # print(line,index)
                                 if index + 2 < len(lines):  # Ensure the index is within bounds
                                     second_line_after = lines[index + 1]
                                     # bracket_match = re.search(r"\(\d+\)", second_line_after)
