@@ -633,20 +633,20 @@ def extract_sales_data(pdf_path):
                                     revenue_center = {}  # Create a new dictionary for each revenue center
                                     if words[1].isalpha():
                                         revenue_center['name'] = words[0] + " " + words[1]
-                                        revenue_center['quantity'] = words[2] if not words[2].isalpha() else words[3]
-                                        revenue_center['total'] = words[3] if not words[2].isalpha() else words[4]
-                                        revenue_center["percent"] = words[4] if not words[2].isalpha() else words[5]
+                                        revenue_center['quantity'] = safe_float(words[2].replace(',', '')) if not words[2].isalpha() else safe_float(words[3].replace(',', ''))
+                                        revenue_center['total'] = safe_float(words[3].replace('$', '').replace(',', '')) if not words[2].isalpha() else safe_float(words[4].replace('$', '').replace(',', ''))
+                                        revenue_center["percent"] = safe_float(words[4].replace('%', '')) if not words[2].isalpha() else safe_float(words[5].replace('%', ''))
                                     else:
                                         revenue_center['name'] = words[0]
-                                        revenue_center['quantity'] = words[1]
-                                        revenue_center['total'] = words[2]
-                                        revenue_center["percent"] = words[3]
+                                        revenue_center['quantity'] = safe_float(words[1].replace(',', ''))
+                                        revenue_center['total'] = safe_float(words[2].replace('$', '').replace(',', ''))
+                                        revenue_center["percent"] = safe_float(words[3].replace('%', ''))
         
                                     # Append the revenue center data to the list
                                     revenue_centers.append(revenue_center)
                                     
         # Store all revenue centers in the main data dictionary
-        data["Revenue Centers"] = revenue_centers
+        data["revenue_centers"] = revenue_centers
 
         # Tenders
         All_Tenders = []
