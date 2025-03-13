@@ -966,21 +966,22 @@ def extract_invoice_non_detailed(file):
                         # "tax" : safe_float(data[i+8]),
                         # "extended_price" : safe_float(data[i+9]),
                         "qty_ship": safe_float(data[i + 2].split(" ")[0] if " " in data[i + 2] else data[i + 2]),
-                        "unit": extract_alpha(data[i+2].split(" ")[-1])+data[i+3] if not data[i+3].startswith("SE") else (
+                        "unit": extract_alpha(data[i+2].split(" ")[-1])+data[i+3] if not data[i+3].startswith(("SE ", "OX ")) else (
                             (data[i+2].split(" ")[1] if " " in data[i+2] else data[i+2]) + data[i+3].split(" ")[0]
                             if not data[i+2].isdigit() else ""
                         ),
-                        "item_description": (data[i + 4] if not data[i+3].startswith("SE") else data[i+3].replace("SE","")) if data[i+3].isalnum() else data[i+3].split(" ")[-1]+data[i+4],
-                        "category": data[i + 5] if not data[i+3].startswith("SE") else data[i+4],
-                        "invent_value": data[i + 6] if not data[i+3].startswith("SE") else data[i+5],
-                        "unit_price": data[i + 7] if not data[i+3].startswith("SE") else data[i+6],
-                        "tax": data[i + 8] if not data[i+3].startswith("SE") else data[i+7],
-                        "extended_price": data[i + 9]if not data[i+3].startswith("SE") else data[i+8],
+                        # "item_description": (data[i + 4] if not data[i+3].startswith("SE") else data[i+3].replace("SE","")) if data[i+3].isalnum() else data[i+3].split(" ")[-1]+data[i+4],
+                        "item_description": (data[i + 4] if not data[i+3].startswith(("SE ", "OX ")) else data[i+3].replace("SE ", "").replace("SE","").replace("OX ", "")),
+                        "category": data[i + 5] if not data[i+3].startswith(("SE ", "OX ")) else data[i+4],
+                        "invent_value": data[i + 6] if not data[i+3].startswith(("SE ", "OX ")) else data[i+5],
+                        "unit_price": data[i + 7] if not data[i+3].startswith(("SE ", "OX ")) else data[i+6],
+                        "tax": data[i + 8] if not data[i+3].startswith(("SE ", "OX ")) else data[i+7],
+                        "extended_price": data[i + 9]if not data[i+3].startswith(("SE ", "OX ")) else data[i+8],
                         "type": "non-detailed"
                     })
                     parsed_items.append(item)
                     # i+=10
-                    if not data[i+3].startswith("SE") :
+                    if not data[i+3].startswith(("SE ", "OX ")) :
                         i += 10
                     else:
                         i += 9
