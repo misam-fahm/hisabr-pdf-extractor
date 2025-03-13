@@ -904,10 +904,18 @@ def extract_invoice_non_detailed(file):
         # Extract text from the first page
         first_page = pdf.pages[0]
         text = first_page.extract_text()
-        
         # Extract invoice number and date
         location_match = re.search(r'(\d+)\s* Wat?kinsville', text)
-        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        if location_match:
+            invoice_details["store_name"] = location_match.group(1)
+        else:
+            # If the first regex doesn't match, check the second regex
+            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            if second_match:
+                invoice_details["store_name"] = second_match.group(1)
+            else:
+                invoice_details["store_name"] = "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -1007,10 +1015,18 @@ def extract_invoice_detailed(file):
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
         text = first_page.extract_text()
-    
         # Extract invoice number and date
         location_match = re.search(r'(\d+)\s* Wat?kinsville', text)
-        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        if location_match:
+            invoice_details["store_name"] = location_match.group(1)
+        else:
+            # If the first regex doesn't match, check the second regex
+            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            if second_match:
+                invoice_details["store_name"] = second_match.group(1)
+            else:
+                invoice_details["store_name"] = "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -1187,7 +1203,16 @@ def extract_invoice_Sysco(file):
         first_page = pdf.pages[-1]
         text = first_page.extract_text()
         location_match = re.search(r'(\d+)\s+DQ\s+WATKINSVILLE', text)
-        invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        if location_match:
+            invoice_details["store_name"] = location_match.group(1)
+        else:
+            # If the first regex doesn't match, check the second regex
+            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            if second_match:
+                invoice_details["store_name"] = second_match.group(1)
+            else:
+                invoice_details["store_name"] = "Not Found"
         # print(text)
         for line in text.split('\n'):
             
