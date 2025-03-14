@@ -905,13 +905,13 @@ def extract_invoice_non_detailed(file):
         first_page = pdf.pages[0]
         text = first_page.extract_text()
         # Extract invoice number and date
-        location_match = re.search(r'(\d+)\s* Wat?kinsville', text)
+        location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
         # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         if location_match:
             invoice_details["store_name"] = location_match.group(1)
         else:
             # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
             if second_match:
                 invoice_details["store_name"] = second_match.group(1)
             else:
@@ -1016,13 +1016,13 @@ def extract_invoice_detailed(file):
         first_page = pdf.pages[0]
         text = first_page.extract_text()
         # Extract invoice number and date
-        location_match = re.search(r'(\d+)\s* Wat?kinsville', text)
+        location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
         # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         if location_match:
             invoice_details["store_name"] = location_match.group(1)
         else:
             # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
             if second_match:
                 invoice_details["store_name"] = second_match.group(1)
             else:
@@ -1202,13 +1202,13 @@ def extract_invoice_Sysco(file):
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[-1]
         text = first_page.extract_text()
-        location_match = re.search(r'(\d+)\s+DQ\s+WATKINSVILLE', text)
+        location_match = re.search(r'(\d+)\s+DQ\s+WATKINSVILLE', text, re.IGNORECASE)
         # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
         if location_match:
             invoice_details["store_name"] = location_match.group(1)
         else:
             # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*Cordele', text)  # Replace with your second pattern
+            second_match = re.search(r'(\d+)\s*DQ\s+Cordele', text, re.IGNORECASE)  # Replace with your second pattern
             if second_match:
                 invoice_details["store_name"] = second_match.group(1)
             else:
