@@ -1305,9 +1305,15 @@ def extract_invoice_Sysco(file):
             text = page.extract_text()
             for line in text.split('\n') :
                 if "GROUP TOTAL**" in line:
-                    num = float(line.split(" ")[-1])
-                    invoice_details["product_total"] += num
-
+                    last_part = line.split(" ")[-1]
+                    # num = float(line.split(" ")[-1])
+                    # invoice_details["product_total"] += num
+                    try:
+                        num = float(last_part.strip())
+                        invoice_details["product_total"] += num
+                    except ValueError:
+                        print(f"Warning: Could not convert '{last_part}' to a number.")
+                        
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[0]
         text = first_page.extract_text()
