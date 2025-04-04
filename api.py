@@ -430,7 +430,7 @@ CORS(app)
 
 def safe_float(value, default=0.0):
     try:
-        return float(value)
+        return float(value.replace(',', ''))
     except (ValueError, TypeError):
         return default
 
