@@ -554,7 +554,8 @@ def extract_sales_data(pdf_path):
                         data['order_average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Total No Sales Count" in line:
                         data["total_no_sales_count"] = safe_float(line.split(" ")[-1].replace('$', '').replace(',', ''))
-                        data['order_average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
+                        if data['order_average'] == "":
+                            data['order_average'] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
                     elif "Total Item Sales" in line:
                         data['total_item_sales'] = safe_float(line.split("$")[1].split(" ")[0].replace('$', '').replace(',', ''))
                         data["taxable_item_sales"] = safe_float(line.split(":")[-1].replace('$', '').replace(',', ''))
