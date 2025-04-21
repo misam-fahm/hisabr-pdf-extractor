@@ -1320,17 +1320,26 @@ def extract_invoice_Sysco(file):
         text = first_page.extract_text()
         
         # Extract invoice number and date
-        for line in text.split('\n'):
+        lines = text.split('\n')
+        for i, line in enumerate(lines):
             if 'TRUCK STOP' in line:
                 invoice_details['invoice_number'] = line.split(' ')[3]
             
             # Extract date based on pattern or fallback
-            date_match = re.search(r'DATE\s*:\s*(\d{2}/\d{2}/\d{2})', text)
+            date_match = re.search(r'DATE\s*:\s*(\d{1,2}/\d{1,2}/\d{2})', text)
             # invoice_details['seller_name'] = pdf_type
             if date_match:
                 invoice_details['invoice_date'] = date_match.group(1)
             elif 'SIGNED:' in line:
                 invoice_details['invoice_date'] = line.split(' ')[-1]
+            else:
+                if 'DELV. DATE' in line:
+                    # Look on the next line for a date pattern
+                    if i + 1 < len(lines):
+                        next_line = lines[i + 1]
+                        date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{2})', next_line)
+                        if date_match:
+                            invoice_details['invoice_date'] = date_match.group(1)
 
         if 'SYSCO ATLANTA LLC' in text:
             invoice_details['seller_name'] = 'SYSCO ATLANTA LLC'
