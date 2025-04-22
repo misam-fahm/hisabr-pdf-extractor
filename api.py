@@ -428,6 +428,20 @@ CORS(app)
 
 #         print(f"Extracted data from {filename} and saved to {json_path}")
 
+patterns = [
+    r'(\d+)\s* Wat?kinsville',
+    r'(\d+)\s*Wat?k?insville',  # covers both "Watinsville" and "Watkinsville"    
+    r'(\d+)\s*Cordele',    
+    r'(\d+)\s*Alpharetta',    
+    # Add more patterns here as needed
+]
+
+patternsSysco = [
+    r'(\d+)\s+DQ\s+WATKINSVILLE',
+    r'(\d+)\s*DQ\s+Cordele',
+    r'(\d+)\s*DQ\s+Alpharetta',
+]
+
 def safe_float(value, default=0.0):
     try:
         return float(value.replace(',', ''))
@@ -906,17 +920,24 @@ def extract_invoice_non_detailed(file):
         first_page = pdf.pages[0]
         text = first_page.extract_text()
         # Extract invoice number and date
-        location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
-        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
-        if location_match:
-            invoice_details["store_name"] = location_match.group(1)
-        else:
-            # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
-            if second_match:
-                invoice_details["store_name"] = second_match.group(1)
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_details["store_name"] = match.group(1)
+                break
             else:
                 invoice_details["store_name"] = "Not Found"
+        # location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
+        # # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # if location_match:
+        #     invoice_details["store_name"] = location_match.group(1)
+        # else:
+        #     # If the first regex doesn't match, check the second regex
+        #     second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
+        #     if second_match:
+        #         invoice_details["store_name"] = second_match.group(1)
+        #     else:
+        #         invoice_details["store_name"] = "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -1017,17 +1038,25 @@ def extract_invoice_detailed(file):
         first_page = pdf.pages[0]
         text = first_page.extract_text()
         # Extract invoice number and date
-        location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
-        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
-        if location_match:
-            invoice_details["store_name"] = location_match.group(1)
-        else:
-            # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
-            if second_match:
-                invoice_details["store_name"] = second_match.group(1)
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_details["store_name"] = match.group(1)
+                break
             else:
                 invoice_details["store_name"] = "Not Found"
+
+        # location_match = re.search(r'(\d+)\s* Wat?kinsville', text, re.IGNORECASE)
+        # # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # if location_match:
+        #     invoice_details["store_name"] = location_match.group(1)
+        # else:
+        #     # If the first regex doesn't match, check the second regex
+        #     second_match = re.search(r'(\d+)\s*Cordele', text, re.IGNORECASE)  # Replace with your second pattern
+        #     if second_match:
+        #         invoice_details["store_name"] = second_match.group(1)
+        #     else:
+        #         invoice_details["store_name"] = "Not Found"
         for line in text.split('\n'):
             if 'Invoice Date' in line:
                 invoice_details['invoice_date'] = line.split(' ')[2]            
@@ -1203,17 +1232,24 @@ def extract_invoice_Sysco(file):
     with pdfplumber.open(file) as pdf:
         first_page = pdf.pages[-1]
         text = first_page.extract_text()
-        location_match = re.search(r'(\d+)\s+DQ\s+WATKINSVILLE', text, re.IGNORECASE)
-        # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
-        if location_match:
-            invoice_details["store_name"] = location_match.group(1)
-        else:
-            # If the first regex doesn't match, check the second regex
-            second_match = re.search(r'(\d+)\s*DQ\s+Cordele', text, re.IGNORECASE)  # Replace with your second pattern
-            if second_match:
-                invoice_details["store_name"] = second_match.group(1)
+        for pattern in patternsSysco:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_details["store_name"] = match.group(1)
+                break
             else:
                 invoice_details["store_name"] = "Not Found"
+        # location_match = re.search(r'(\d+)\s+DQ\s+WATKINSVILLE', text, re.IGNORECASE)
+        # # invoice_details["store_name"] = location_match.group(1) if location_match else "Not Found"
+        # if location_match:
+        #     invoice_details["store_name"] = location_match.group(1)
+        # else:
+        #     # If the first regex doesn't match, check the second regex
+        #     second_match = re.search(r'(\d+)\s*DQ\s+Cordele', text, re.IGNORECASE)  # Replace with your second pattern
+        #     if second_match:
+        #         invoice_details["store_name"] = second_match.group(1)
+        #     else:
+        #         invoice_details["store_name"] = "Not Found"
         # print(text)
         for line in text.split('\n'):
             
