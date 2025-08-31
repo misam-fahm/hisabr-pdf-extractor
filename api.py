@@ -443,6 +443,7 @@ patternsSysco = [
     r'(\d+)\s*DQ\s+Cordele',
     r'(\d+)\s*DQ\s+Alpharetta',
     r'(\d+)\s*DQ\s+Clayton',
+    r'DQ\s+(\d+)\s+CLAYTON',
     r'(\d+)\s*DQ\s+LITHONIA',
 ]
 
