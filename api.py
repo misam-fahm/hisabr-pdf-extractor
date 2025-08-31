@@ -432,7 +432,9 @@ patterns = [
     r'(\d+)\s* Wat?kinsville',
     r'(\d+)\s*Wat?k?insville',  # covers both "Watinsville" and "Watkinsville"    
     r'(\d+)\s*Cordele',    
-    r'(\d+)\s*Alpharetta',    
+    r'(\d+)\s*Alpharetta',
+    r'(\d+)\s*Clayton',
+    r'(\d+)\s*Lithonia',
     # Add more patterns here as needed
 ]
 
@@ -440,6 +442,8 @@ patternsSysco = [
     r'(\d+)\s+DQ\s+WATKINSVILLE',
     r'(\d+)\s*DQ\s+Cordele',
     r'(\d+)\s*DQ\s+Alpharetta',
+    r'(\d+)\s*DQ\s+Clayton',
+    r'(\d+)\s*DQ\s+LITHONIA',
 ]
 
 def safe_float(value, default=0.0):
