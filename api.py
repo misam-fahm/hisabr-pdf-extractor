@@ -428,6 +428,140 @@ CORS(app)
 
 #         print(f"Extracted data from {filename} and saved to {json_path}")
 
+sales_fields = [
+    "labor_cost", "labor_hours", "labor_percent", "gross_sales", 
+    "net_sales", "order_count", "guest_count", "order_average", 
+    "total_no_sales_count", "total_item_sales", "taxable_item_sales",
+    "cash_tips_received", "non_taxable_item_sales", "tax_amt", "surcharges",
+    "deposits_accepted_amount", "deposits_redeemed_amount", "cash_deposits_accepted",
+    "paid_in", "paid_out", "sales_per_labor_hour", "gift_card_issue_count",
+    "gift_card_issue_amount", "gift_card_reload_count", "gift_card_reload_amount",
+    "gift_card_cash_out_count", "gift_card_cash_out_amount", "total_cash_amount",
+    "donation_count", "donation_total_amount", "deposits_redeemed", "discounts",
+    "promotions", "gift_card_promotions", "refunds", "voids", "non_cash_payments",
+    "non_revenue_items", "cash_back_amount"
+]
+
+sales_fields_patterns = {
+    "labor_cost": [
+        r"Labor\s*Cost\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "labor_hours": [
+        r"Labor\s*Hours\s*[:\-]?\s*([\d,]*\.?[\d]+)\b"
+    ],
+    "labor_percent": [
+        r"Labor\s*Percent\s*[:\-]?\s*([\d,]*\.?[\d]+)%?\b"
+    ],
+    "gross_sales": [
+        r"Gross\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Gross Sales with dollar format
+    ],
+    "net_sales": [
+        r"Net\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Net Sales with dollar format
+    ],
+    "order_count": [
+        r"Order\s*Count\s*[:\-]?\s*(\d+)\b",  # Matches Order Count (only digits)
+    ],
+    "guest_count": [
+        r"Guest\s*Count\s*[:\-]?\s*(\d+)\b",  # Matches Guest Count (only digits)
+    ],
+    "order_average": [
+        r"Order\s*Average\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Order Average with dollar format
+    ],
+    "total_no_sales_count": [
+        r"Total\s*No\s*Sales\s*Count\s*[:\-]?\s*(\d+)\b",  # Matches Total No Sales Count (only digits)
+    ],
+    "total_item_sales": [
+        r"Total\s*Item\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Total Item Sales with dollar format
+    ],
+    "taxable_item_sales": [
+        r"Taxable\s*Item\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Taxable Item Sales with dollar format
+    ],
+    "cash_tips_received": [
+        r"Cash\s*Tips\s*Received\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "non_taxable_item_sales": [
+        r"Non-Taxable\s*Item\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "tax_amt": [
+        r"\+\s*Tax\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "surcharges": [
+        r"Surcharges\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "deposits_accepted_amount": [
+        r"Deposits\s*Accepted\s*Amount\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "deposits_redeemed_amount": [
+        r"Deposits\s*Redeemed\s*Amount\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "paid_in": [
+        r"Paid\s*In\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "paid_out": [
+        r"Paid\s*Out\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "sales_per_labor_hour": [
+        r"Sales\s*Per\s*Labor\s*Hour\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "gift_card_issue_count": [
+        r"Gift\s*Card\s*Issue\s*Count\s*[:\-]?\s*(\d+)\b"
+    ],
+    "gift_card_issue_amount": [
+        r"Gift\s*Card\s*Issue\s*Amount\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "gift_card_reload_count": [
+        r"Gift\s*Card\s*Reload\s*Count\s*[:\-]?\s*(\d+)\b"
+    ],
+    "gift_card_reload_amount": [
+        r"Gift\s*Card\s*Reload\s*Amount\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "gift_card_cash_out_count": [
+        r"Gift\s*Card\s*Cash\s*Out\s*Count\s*[:\-]?\s*(\d+)\b"
+    ],
+    "gift_card_cash_out_amount": [
+        r"Gift\s*Card\s*Cash\s*Out\s*Amount\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "total_cash_amount": [
+        r"Total\s*Cash\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "donation_count": [
+        r"Donation\s*Count\s*[:\-]?\s*(\d+)\b"
+    ],
+    "donation_total_amount": [
+        r"Donation\s*Total\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "cash_deposits_accepted": [
+        r"Cash\s*Deposits\s*Accepted\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "deposits_redeemed": [
+        r"Deposits\s*Redeemed\s*[:\-]?\s*(\d+)\b"
+    ],
+    "discounts": [
+        r"Discounts\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "promotions": [
+        r"Promotions\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "gift_card_promotions": [
+        r"Gift\s*Card\s*Promotions\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "refunds": [
+        r"Refunds\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "voids": [
+        r"Voids\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "non_cash_payments": [
+        r"Non-Cash\s*Payments\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "non_revenue_items": [
+        r"Non\s*Revenue\s*Items\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ],
+    "cash_back_amount": [
+        r"Cash\s*Back\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b"
+    ]
+}
+
 patterns = [
     r'(\d+)\s* Wat?kinsville',
     r'(\d+)\s*Wat?k?insville',  # covers both "Watinsville" and "Watkinsville"    
@@ -447,6 +581,12 @@ patternsSysco = [
     r'(\d+)\s*DQ\s+LITHONIA',
 ]
 
+def safe_float_V2(val):
+    try:
+        return float(val.replace(',', '').replace('$', '').replace('%', '').strip())
+    except:
+        return 0.0
+    
 def safe_float(value, default=0.0):
     try:
         return float(value.replace(',', ''))
@@ -630,6 +770,330 @@ def extract_sales_data(pdf_path):
 
         # Revenue Centers
         # ```python
+        revenue_centers = []
+        for page in pdf.pages:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Revenue Centers" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        # Check for the end of relevant section
+                        if section_line.strip() == "Tenders":
+                            break
+                        else:
+                            # Use regex to match the required pattern
+                            match = re.match(r"^\s*(\w+(?:[-\s]\w+)*?)\s", section_line)
+                            if match:
+                                # Ensure "Name" or "Total" are not in the first word of the line
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word:
+                                    # Split and assign values as needed
+                                    words = section_line.split(" ")
+                                    revenue_center = {}  # Create a new dictionary for each revenue center
+                                    if words[1].isalpha():
+                                        revenue_center['name'] = words[0] + " " + words[1]
+                                        revenue_center['quantity'] = safe_float(words[2].replace(',', '')) if not words[2].isalpha() else safe_float(words[3].replace(',', ''))
+                                        revenue_center['total'] = safe_float(words[3].replace('$', '').replace(',', '')) if not words[2].isalpha() else safe_float(words[4].replace('$', '').replace(',', ''))
+                                        revenue_center["percent"] = safe_float(words[4].replace('%', '')) if not words[2].isalpha() else safe_float(words[5].replace('%', ''))
+                                    else:
+                                        revenue_center['name'] = words[0]
+                                        revenue_center['quantity'] = safe_float(words[1].replace(',', ''))
+                                        revenue_center['total'] = safe_float(words[2].replace('$', '').replace(',', ''))
+                                        revenue_center["percent"] = safe_float(words[3].replace('%', ''))
+        
+                                    # Append the revenue center data to the list
+                                    revenue_centers.append(revenue_center)
+                                    
+        # Store all revenue centers in the main data dictionary
+        data["revenue_centers"] = revenue_centers
+
+        # Tenders
+        All_Tenders = []
+        for page in pdf.pages:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Tenders" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        # Check for the end of relevant section
+                        if section_line.strip() == "Cash Skims":
+                            break
+                        else:
+                            # Use regex to match the required pattern
+                            match = re.match(r"^\s*(\w+(?:[-\s\W*]\w+)*?)\s", section_line)
+                            if match:
+                                # Ensure "Name" or "Total" are not in the first word of the line
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word:
+                                    # Split and assign values as needed
+                                    words = section_line.split(" ")
+                                    tenders = {}  # Create a new dictionary for each revenue center
+                                    tenders["name"] = " ".join(words[:-5])
+                                    tenders["quantity"] = safe_float(words[-5].replace('$', '').replace(',', ''))
+                                    tenders["payments"] = safe_float(words[-4].replace('$', '').replace(',', ''))
+                                    tenders['tips'] = safe_float(words[-3].replace('$', '').replace(',', ''))
+                                    tenders['total'] = safe_float(words[-2].replace('$', '').replace(',', ''))
+                                    tenders['percent'] = safe_float(words[-1].replace('$', '').replace(',', ''))
+                                    # Append the revenue center data to the list
+                                    All_Tenders.append(tenders)
+        
+        # Store all tenders in the main data dictionary
+        data["tenders"] = All_Tenders
+
+        #Cash Skims
+        Cash_Skims = []
+        for page in pdf.pages:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Cash Skims" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        # Check for the end of relevant section
+                        if section_line.strip() == "Discounts":
+                            break
+                        else:
+                            # Use regex to match the required pattern
+                            match = re.match(r"^\s*(\w+(?:[-\s\W*]\w+)*?)\s", section_line)
+                            if match:
+                                # Ensure "Name" or "Total" are not in the first word of the line
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word:
+                                    # Split and assign values as needed
+                                    words = section_line.split(" ")
+                                    skims = {}  # Create a new dictionary for each revenue center
+                                    skims["Name"] = " ".join(words[:-2]) if not words[-2].isalpha() else " ".join(words[:-1])
+                                    skims["Quantity"] = words[-2] if not words[-2].isalpha() else " " 
+                                    skims["Total"] = words[-1]
+                                    
+                                    # Append the revenue center data to the list
+                                    Cash_Skims.append(skims)
+        
+        # Store all tenders in the main data dictionary
+        data["Cash Skims"] = Cash_Skims
+
+        #Discounts
+        Discounts = []
+        for page in pdf.pages[1:]:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Discounts" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        # Check for the end of relevant section
+                        if section_line.strip() == "Promotions":
+                            break
+                        else:
+                            # Use regex to match the required pattern
+                            match = re.match(r"^\s*([\W*\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", section_line)
+                            if match:
+                                # Ensure "Name" or "Total" are not in the first word of the line
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word:
+                                    words = section_line.split(" ")
+                                    discounts = {}  # Create a new dictionary for each revenue center
+                                    discounts["Name"] = " ".join(words[:-3])
+                                    discounts["Quantity"] = words[-3] 
+                                    discounts["Total"] = words[-2]
+                                    discounts["Percent"] = words[-1]
+                                    
+                                    # Append the revenue center data to the list
+                                    Discounts.append(discounts)
+        
+        # Store all discounts in the main data dictionary
+        data["Discounts"] = Discounts
+        
+        #Promotions
+        # Promotions = []
+        # in_promotions_section = False
+        # for page in pdf.pages[1:]:
+        #     text = page.extract_text()
+        #     lines = text.split('\n')
+            
+        #     for line in lines:
+        #         if "Promotions" in line:
+        #             in_promotions_section = True
+        #             continue
+
+        #         if in_promotions_section and "Taxes" in line:
+        #             in_promotions_section = False
+        #             break
+
+        #         if in_promotions_section:
+        #             match = re.match(r"^\s*\$([\W\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", line)
+        #             if match:
+        #                 words = line.split()
+        #                 if len(words) >= 4:
+        #                     if "Name" not in words and "Page" not in words and "Total" not in words and "Sales Summary" not in line and "UTC" not in line:
+        #                         promotions = {
+        #                             "Name": " ".join(words[:-3]),
+        #                             "Quantity": words[-3],
+        #                             "Total": words[-2],
+        #                             "Percent": words[-1],
+        #                         }
+        #                         Promotions.append(promotions)
+
+        # # Store Promotions in the data dictionary
+        # data["Promotions"] = Promotions
+        #Promotions
+        Promotions = []
+        in_promotions_section = False
+        for page in pdf.pages[1:]:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for index,line in enumerate(lines):
+                if "Promotions" in line:
+                    in_promotions_section = True
+                    continue
+
+                if in_promotions_section and "Taxes" in line:
+                    in_promotions_section = False
+                    break
+
+                if in_promotions_section:
+                    # match = re.match(r"^\s*\$([\W\d*]* | [\d*\W*])(\w+(?:[-\s\W]\w+)*?)\s", line)
+                    match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", line)
+                    if match:
+                        words = line.split()
+                        if len(words) >= 4:
+                            if "Name" not in words and "Page" not in words and "Total" not in words and "Sales Summary" not in line and "UTC" not in line:
+                                # print(line,index)
+                                if index + 2 < len(lines):  # Ensure the index is within bounds
+                                    second_line_after = lines[index + 1]
+                                    # bracket_match = re.search(r"\(\d+\)", second_line_after)
+                                    # bracket_match = re.search(r"^.+?\s\(\d+\)", second_line_after)
+                                    # bracket_match = re.search(r".*\(\d+\)", second_line_after)
+                                    bracket_match = re.search(r"^[A-Za-z0-9\s]*\(\d+\)$", second_line_after)
+                                    if bracket_match:
+                                        # print(f"Bracketed Number Found in Second Line: {bracket_match.group(0)}")
+                                        promotions = {
+                                            "Name": " ".join(words[:-3])  + " " + bracket_match.group(0),
+                                            "Quantity": words[-3],
+                                            "Total": words[-2],
+                                            "Percent": words[-1],
+                                        }
+                                        Promotions.append(promotions)
+                                        
+                                    else:
+                                        # print("No Bracketed Number Found in Second Line.") 
+                                            
+                                        promotions = {
+                                            "Name": " ".join(words[:-3]),
+                                            "Quantity": words[-3],
+                                            "Total": words[-2],
+                                            "Percent": words[-1],
+                                        }
+                                        Promotions.append(promotions)
+                                        
+                                else:
+                                    # print("No second line exists after the matched index.")
+                                        
+                                    promotions = {
+                                        "Name": " ".join(words[:-3]),
+                                        "Quantity": words[-3],
+                                        "Total": words[-2],
+                                        "Percent": words[-1],
+                                    }
+                                    Promotions.append(promotions)
+
+        # Store Promotions in the data dictionary
+        data["Promotions"] = Promotions
+        #Taxes
+        Taxes = []
+        for page in pdf.pages[1:]:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Taxes" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        if section_line.strip() == "Destinations":
+                            break
+                        else:
+                            match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", section_line)
+                            if match:
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word and "Page" not in first_word:
+                                    words = section_line.split(" ")
+                                    taxes = {}
+                                    taxes["Name"] = " ".join(words[:-3])
+                                    taxes["Quantity"] = words[-3] 
+                                    taxes["Total"] = words[-2]
+                                    taxes["Percent"] = words[-1]
+                                    
+                                    Taxes.append(taxes)
+        
+        data["Taxes"] = Taxes
+        
+        #Destinations
+        Destinations = []
+        for page in pdf.pages[1:]:
+            text = page.extract_text()
+            lines = text.split('\n')
+            
+            for line in lines:
+                if "Destinations" in line:
+                    for section_line in lines[lines.index(line) + 1:]:
+                        if section_line.strip() == "Page":
+                            break
+                        else:
+                            match = re.match(r"^\s*(\w[\w\s-]+)\s+(\d+)\s+\$([\d.,]+)\s+([\d.]+%)\s*$", section_line)
+                            if match:
+                                first_word = section_line.split(" ")[0]
+                                if "Total" not in first_word and "Name" not in first_word and "Page" not in first_word:
+                                    words = section_line.split(" ")
+                                    destinations = {}
+                                    destinations["Name"] = " ".join(words[:-3])
+                                    destinations["Quantity"] = words[-3] 
+                                    destinations["Total"] = words[-2]
+                                    destinations["Percent"] = words[-1]
+                                    
+                                    Destinations.append(destinations)
+        
+        data["Destinations"] = Destinations
+    return data
+
+def extract_sales_data_V2(pdf_path):
+    data = {}
+
+    with pdfplumber.open(pdf_path) as pdf:
+        # Loop through pages to find relevant data
+        for page in pdf.pages:
+            text = page.extract_text()
+            # print(text)
+            
+            pattern = r"Sales Summary\s+(\d+)"
+            match = re.search(pattern, text)
+
+            if match:
+                data["store_name"] = match.group(1)
+
+            date_match = re.search(r'(\w+,\s+\w+\s+\d{1,2},\s+\d{4})', text)
+            data["sales_date"] = date_match.group(1) if date_match else "Not Found"
+
+            # Set default value for each missing field
+            for field in sales_fields:
+                data.setdefault(field, 0.0)
+
+            new_text = text.replace("\n", " ").replace("  ", " ") # Clean the text
+            for field, regex_list in sales_fields_patterns.items():
+                for regex in regex_list:
+                    match = re.search(regex, new_text, re.IGNORECASE)
+                    if match:
+                        data[field] = safe_float_V2(match.group(1))
+                        break  # Stop at the first match
+
+            if "Sales Summary" in text:
+                data["Sale Summary"] = text.split('\n')[0].split("Sales Summary")[-1]
+                data["Date"] = " ".join(text.split('\n')[1].split(" ")[-4:-1])
+
+            if "Gross Sales" in text:
+                lines = text.split("\n")
+
         revenue_centers = []
         for page in pdf.pages:
             text = page.extract_text()
@@ -1560,7 +2024,7 @@ def process_sales():
     # extract_function = pdf_type_to_function_and_template.get(pdf_type, default_function)
 
     # Call the selected function with the file and template
-    extracted_data = extract_sales_data(file)
+    extracted_data = extract_sales_data_V2(file)
 
     # if pdf_type == 'detailed':
     #     extracted_data = extract_invoice_Gordon_detailed(file, pdf_type)
