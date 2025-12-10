@@ -570,7 +570,8 @@ patterns = [
     r'(\d+)\s*Clayton',
     r'(\d+)\s*Lithonia',
     r'(\d+)\s*Toccoa',
-    r'(\d+)\s*Flat\s+Shoals',
+    r'(\d+)\s*Decatur',
+    # r'(\d+)\s*Flat\s+Shoals',
     # Add more patterns here as needed
 ]
 
@@ -630,7 +631,7 @@ def detect_pdf_type(file):
             if tables:
                 # Check the first table
                 first_table = tables[1]
-                print(first_table)
+                # print(first_table)
                 if len(first_table[1]) > 10:  # Adjust column count threshold as needed
                     return 'detailed'
                 else:
@@ -1609,7 +1610,7 @@ def extract_invoice_detailed(file):
             return pack
 
     def filter_out_size(data):
-        print(data)
+        # print(data)
         if 'x' in data : 
             pack = data.split('x')[-1]
             return pack
@@ -1709,6 +1710,8 @@ def extract_invoice_Sysco(file):
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 invoice_details["store_name"] = match.group(1)
+                if invoice_details["store_name"] == "3680":
+                    invoice_details["store_name"] = "43236"
                 break
             else:
                 invoice_details["store_name"] = "Not Found"
@@ -1777,8 +1780,8 @@ def extract_invoice_Sysco(file):
                 # print(prev_line) 
                 if "INVOICE" in prev_line :
                     invoice_details["invoice_total"] = parse_float(words[-1])
-                else :
-                    print("not found")
+                # else :
+                #     print("not found")
 
     lines = text.split('\n')
 
@@ -1798,10 +1801,10 @@ def extract_invoice_Sysco(file):
                 prev_line = lines[i - 1].strip()  # Get the previous line
                 next_line = lines[i + 1].strip()
                 if "INVOICE" in prev_line:
-                    print(prev_line)
+                    # print(prev_line)
                     # Parse the last word from the line (which should be the amount)
                     invoice_details["invoice_total"] = parse_float(words[-1])
-                    print(f"Invoice Total: {invoice_details['invoice_total']}")
+                    # print(f"Invoice Total: {invoice_details['invoice_total']}")
                 elif "S U B" in prev_line or "S UB" in prev_line or "SUB" in prev_line:
                     invoice_details["sub_total"] = parse_float(words[-1])
                 elif "INVOICE" in next_line:
