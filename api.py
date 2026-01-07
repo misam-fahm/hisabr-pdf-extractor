@@ -571,6 +571,7 @@ patterns = [
     r'(\d+)\s*Lithonia',
     r'(\d+)\s*Toccoa',
     r'(\d+)\s*Decatur',
+    r'(\d+)\s*Greensboro',
     # r'(\d+)\s*Flat\s+Shoals',
     # Add more patterns here as needed
 ]
