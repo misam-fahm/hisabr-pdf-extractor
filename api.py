@@ -572,6 +572,7 @@ patterns = [
     r'(\d+)\s*Toccoa',
     r'(\d+)\s*Decatur',
     r'(\d+)\s*Greensboro',
+    r'(\d+)\s*Eastman',
     # r'(\d+)\s*Flat\s+Shoals',
     # Add more patterns here as needed
 ]
@@ -585,6 +586,8 @@ patternsSysco = [
     r'(\d+)\s*DQ\s+LITHONIA',
     r'(\d+)\s*DQ\s+TOCCOA',
     r'(\d+)\s*FLAT\s+SHOALS',
+    r'(\d+)\s*DQ\s+GREENSBORO',
+    r'(\d+)\s*DQ\s+EASTMAN',
 ]
 
 def safe_float_V2(val):
