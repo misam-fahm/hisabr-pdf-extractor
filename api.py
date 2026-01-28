@@ -1700,6 +1700,20 @@ def extract_invoice_detailed(file):
     qty_ship_total = sum(item['qty_ship'] for item in invoice_items)
     invoice_details['qty_ship_total'] = qty_ship_total
 
+    for item in invoice_items:
+        if item["extended_price"] != 0 and item["unit_price"] != 0:
+            if item["qty_ship"] != round(item["extended_price"] / item["unit_price"], 1):
+                item["qty_ship"] = round(item["extended_price"] / item["unit_price"], 1)
+
+        if item["unit_price"] == 0:
+            if item["extended_price"] != 0 and item["qty_ship"] != 0:
+                item["unit_price"] = round(item["extended_price"] / item["qty_ship"], 1)
+
+        if item["extended_price"] == 0:
+            if item["unit_price"] != 0 and item["qty_ship"] != 0:
+                item["extended_price"] = round(item["unit_price"] * item["qty_ship"], 1)
+
+
     return {
     "invoice_details": invoice_details,
     "invoice_items": invoice_items
