@@ -574,6 +574,7 @@ patterns = [
     r'(\d+)\s*Greensboro',
     r'(\d+)\s*Eastman',
     r'(\d+)\s*Stockbridge',
+    r'(\d+)\s*Morrow',
     # r'(\d+)\s*Flat\s+Shoals',
     # Add more patterns here as needed
 ]
@@ -589,6 +590,7 @@ patternsSysco = [
     r'(\d+)\s*FLAT\s+SHOALS',
     r'(\d+)\s*DQ\s+GREENSBORO',
     r'(\d+)\s*DQ\s+EASTMAN',
+    r'(\d+)\s*DQ\s+MORROW',
     r'\b(STOCKBRIDGE)\b'
 ]
 
