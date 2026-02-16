@@ -573,6 +573,7 @@ patterns = [
     r'(\d+)\s*Decatur',
     r'(\d+)\s*Greensboro',
     r'(\d+)\s*Eastman',
+    r'(\d+)\s*Stockbridge',
     # r'(\d+)\s*Flat\s+Shoals',
     # Add more patterns here as needed
 ]
@@ -588,6 +589,7 @@ patternsSysco = [
     r'(\d+)\s*FLAT\s+SHOALS',
     r'(\d+)\s*DQ\s+GREENSBORO',
     r'(\d+)\s*DQ\s+EASTMAN',
+    r'\b(STOCKBRIDGE)\b'
 ]
 
 def safe_float_V2(val):
@@ -1728,8 +1730,16 @@ def extract_invoice_Sysco(file):
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 invoice_details["store_name"] = match.group(1)
-                if invoice_details["store_name"] == "3680":
-                    invoice_details["store_name"] = "43236"
+                # if invoice_details["store_name"] == "3680":
+                #     invoice_details["store_name"] = "43236"
+                # break
+                match invoice_details["store_name"]:
+                    case "3680":
+                        invoice_details["store_name"] = "43236"
+                        break
+                    case "STOCKBRIDGE":
+                        invoice_details["store_name"] = "43248"
+                        break
                 break
             else:
                 invoice_details["store_name"] = "Not Found"
