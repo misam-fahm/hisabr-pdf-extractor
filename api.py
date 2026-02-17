@@ -649,16 +649,39 @@ def detect_pdf_type(file):
 def extract_total_tax(file):
     total_tax = 0.0
     with pdfplumber.open(file) as pdf:
-        last_page = pdf.pages[-1]
-        text = last_page.extract_text()
-        # Regular expression to find lines that have 'Tax' and a number pattern
+        pages_to_check = []
         tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
+
+        # Always check last page first
+        if len(pdf.pages) >= 1:
+            pages_to_check.append(pdf.pages[-1])
+
+        # If more than 1 page, also prepare second last page
+        if len(pdf.pages) >= 2:
+            pages_to_check.append(pdf.pages[-2])
+
+        for page in pages_to_check:
+            text = page.extract_text()
+            if not text:
+                continue
+
+            matches = re.findall(tax_pattern, text)
+
+            if matches:   # Stop early if found
+                for match in matches:
+                    total_tax += safe_float(match.replace('$', '').replace(',', ''))
+                break
+
+        # last_page = pdf.pages[-1]
+        # text = last_page.extract_text()
+        # # Regular expression to find lines that have 'Tax' and a number pattern
+        # tax_pattern = r'\(?\d*\)?\s*Tax\s*-\s*[\d\.]+\s*\$([\d\.]+)'  # Match 'Tax - 4.00 $1.48' type format
         
-        # Find all tax matches in the text
-        matches = re.findall(tax_pattern, text)
-        # Loop through the matches and sum up the second number (the tax amount)
-        for match in matches:
-            total_tax += safe_float(match.replace('$', '').replace(',', ''))
+        # # Find all tax matches in the text
+        # matches = re.findall(tax_pattern, text)
+        # # Loop through the matches and sum up the second number (the tax amount)
+        # for match in matches:
+        #     total_tax += safe_float(match.replace('$', '').replace(',', ''))
     
     return total_tax
 
@@ -685,6 +708,22 @@ def extract_invoice_due_date(file):
 def extract_alpha(value):
     return "".join(c for c in value if c.isalpha())
     
+def extract_number_from_end(words):
+    number_chars = []
+
+    for token in reversed(words):
+        cleaned = token.replace(',', '').strip()
+
+        # Accept digit OR decimal point
+        if cleaned.isdigit() or cleaned == '.':
+            number_chars.insert(0, cleaned)
+        else:
+            break
+
+    number_str = ''.join(number_chars)
+
+    return float(number_str) if number_str else 0.0
+
 def extract_sales_data(pdf_path):
     data = {}
 
@@ -1717,6 +1756,12 @@ def extract_invoice_detailed(file):
             if item["unit_price"] != 0 and item["qty_ship"] != 0:
                 item["extended_price"] = round(item["unit_price"] * item["qty_ship"], 1)
 
+    get_invoice_total = invoice_details.get('invoice_total', 0)
+    get_sub_total = invoice_details.get('sub_total', 0)
+    get_tax_total = invoice_details.get('tax_total', 0)
+
+    if not get_invoice_total and get_sub_total:
+        invoice_details['invoice_total'] =  round(float(get_sub_total + get_tax_total), 2)
 
     return {
     "invoice_details": invoice_details,
@@ -1838,7 +1883,7 @@ def extract_invoice_Sysco(file):
                 elif "S U B" in prev_line or "S UB" in prev_line or "SUB" in prev_line:
                     invoice_details["sub_total"] = parse_float(words[-1])
                 elif "INVOICE" in next_line:
-                    invoice_details["tax_total"] = parse_float(words[-1])
+                    invoice_details["tax_total"] = extract_number_from_end(words)
             else:
                 print("No previous line found")
 
