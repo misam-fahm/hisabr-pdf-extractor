@@ -596,6 +596,10 @@ patternsSysco = [
     r'\b(STOCKBRIDGE)\b'
 ]
 
+patternsMcLane = [
+    r"DAIRY\s+QUEEN\s+#(\d+)"
+]
+
 def safe_float_V2(val):
     try:
         return float(val.replace(',', '').replace('$', '').replace('%', '').strip())
@@ -633,7 +637,8 @@ def detect_pdf_type(file):
         # Check for Sysco-specific identifiers
         if any('SYSCO' in line.upper() for line in text.split('\n')):
             return 'Sysco'
-
+        if text and "McLane Foodservice" in text:
+            return 'McLane'
     # Check for detailed/non-detailed based on table structure
     # with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
@@ -2013,6 +2018,152 @@ def extract_invoice_Sysco(file):
         "invoice_items": items
     }
 
+def extract_invoice_McLane(file):
+    invoice_details = {}
+    with pdfplumber.open(file) as pdf:
+        text = pdf.pages[0].extract_text()
+        first_page = pdf.pages[0]
+        text = first_page.extract_text()
+        # Extract invoice number and date
+        for pattern in patternsMcLane:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_details["store_name"] = match.group(1)
+                break
+            else:
+                invoice_details["store_name"] = "Not Found"
+
+        # Invoice Date
+        inv_date = re.search(r"INVOICE\s+DATE\s+(\d{2}/\d{2}/\d{2})", text, re.IGNORECASE)
+        if inv_date:
+            invoice_details['invoice_date'] = inv_date.group(1)
+
+        # INVOICE DUE DATE
+        inv_due_date = re.search(r"DUE\s+DATE\s+(\d{2}/\d{2}/\d{2})", text, re.IGNORECASE)
+        invoice_details['due_date'] = inv_due_date.group(1)
+
+        # Detect seller
+        if "McLane Foodservice, Inc" in text:
+            invoice_details['seller_name'] = "McLane Foodservice Inc"
+        else:
+            invoice_details['seller_name'] = "UNKNOWN"
+
+        # Invoice Number
+        inv_no_match = re.search(r"INVOICE\s+NUMBER\s+(\d+)", text, re.IGNORECASE)
+        if inv_no_match:
+            invoice_details['invoice_number'] = inv_no_match.group(1)
+
+        pages = pdf.pages
+        data = []
+            
+        for page in pages:
+            tables = page.extract_tables()
+            for table in tables:
+                if table and len(table[0]) > 10:
+                    for row in table:
+                        cleaned_row = [cell for cell in row if cell is not None]
+                        if cleaned_row:
+                            data += cleaned_row
+
+        for i, val in enumerate(data):
+            if val and "Account Totals" in val:
+                nums = [x for x in data[i+1:i+10] if x and any(c.isdigit() for c in x)]
+
+                if len(nums) >= 1:
+                    invoice_details["product_total"] = safe_float(nums[0].replace(',', ''))
+                    invoice_details["sub_total"] = safe_float(nums[0].replace(',', ''))
+
+                if len(nums) >= 2:
+                    invoice_details["tax_total"] = safe_float(nums[1].replace(',', ''))
+
+                if len(nums) >= 3:
+                    invoice_details["invoice_total"] = safe_float(nums[2].replace(',', ''))
+                break
+
+            if val and "Tot-" in val:
+                match = re.search(r"Tot-\s*(\d+)", val)
+                if match:
+                    invoice_details["qty_ship_total"] = safe_float(match.group(1))
+
+    # def filter_unit(data):
+    #     data=data.split(" ")
+    #     if len(data)>=2:
+    #         return data[-1]
+    
+    # def filter_out_pack(data):
+    #     if 'x' in data : 
+    #         pack = data.split('x')[0]
+    #         return pack
+    #     elif 'X' in data :
+    #         pack = data.split('X')[0]
+    #         return pack
+
+    # def filter_out_size(data):
+    #     # print(data)
+    #     if 'x' in data : 
+    #         pack = data.split('x')[-1]
+    #         return pack
+    #     elif 'X' in data :
+    #         pack = data.split('X')[-1]
+    #         return pack
+    def is_valid_prod_item_code(val):
+        return isinstance(val, str) and re.fullmatch(r"\d{6}", val)
+
+    def parse_invoice_data(data):
+        # items = []
+        parsed_items = []
+        i = 0
+
+        for i, val in enumerate(data):
+            if is_valid_prod_item_code(val):
+                item = {
+                    "item_code": val,
+                    "qty_ord": safe_float(data[i-4] if i >= 4 else 0),
+                    "qty_ship": safe_float(data[i-3] if i >= 4 else 0),
+                    "unit": data[i-2] if i >= 4 else "",
+                    "pack": "", #(filter_out_pack(data[i+4]) if " " not in data[i+1] else filter_out_pack(data[i+3])) or filter_out_pack(data[i+3]),
+                    "size": "", #(filter_out_size(data[i+4]) if " " not in data[i+1] else filter_out_size(data[i+3])) or filter_out_size(data[i+3]),
+                    "pack_size": data[i+6] if i+6 < len(data) else "",
+                    "brand": data[i+21] if i+21 < len(data) else "", #(data[i+4] if len(data[i+3].split(" "))!=1 else data[i+5]) if " " not in data[i+1] else data[i+4],
+                    "item_description": data[i+1] if i+1 < len(data) else "",
+                    "category": "", #(data[i+6] if len(data[i+3].split(" "))!=1 else data[i+7]) if " " not in data[i+1] else data[i+6],
+                    "invent_value": 0, #safe_float((data[i+7] if len(data[i+3].split(" "))!=1 else data[i+8]) if " " not in data[i+1] else data[i+7]),
+                    "unit_price": safe_float(data[i+7]) if i+7 < len(data) else 0.0,
+                    "spec": "", #(data[i+9] if len(data[i+3].split(" "))!=1 else data[i+10]) if " " not in data[i+1] else data[i+9],
+                    "tax": 0, #safe_float((data[i+10] if len(data[i+3].split(" "))!=1 else data[i+11]) if " " not in data[i+1] else data[i+10]),
+                    "extended_price": safe_float(data[i+8]) if i+8 < len(data) else 0.0,
+                    "type": "McLane",
+                }
+                parsed_items.append(item)
+        return parsed_items
+
+    invoice_items = parse_invoice_data(data)
+
+    # for item in invoice_items:
+    #     if item["extended_price"] != 0 and item["unit_price"] != 0:
+    #         if item["qty_ship"] != round(item["extended_price"] / item["unit_price"], 1):
+    #             item["qty_ship"] = round(item["extended_price"] / item["unit_price"], 1)
+
+    #     if item["unit_price"] == 0:
+    #         if item["extended_price"] != 0 and item["qty_ship"] != 0:
+    #             item["unit_price"] = round(item["extended_price"] / item["qty_ship"], 1)
+
+    #     if item["extended_price"] == 0:
+    #         if item["unit_price"] != 0 and item["qty_ship"] != 0:
+    #             item["extended_price"] = round(item["unit_price"] * item["qty_ship"], 1)
+
+    get_invoice_total = invoice_details.get('invoice_total', 0)
+    get_sub_total = invoice_details.get('sub_total', 0)
+    get_tax_total = invoice_details.get('tax_total', 0)
+
+    if not get_invoice_total and get_sub_total:
+        invoice_details['invoice_total'] =  round(float(get_sub_total + get_tax_total), 2)
+
+    return {
+    "invoice_details": invoice_details,
+    "invoice_items": invoice_items
+    }
+
 @app.route('/convert-pdf', methods=['POST'])
 def convert_pdf():
     if 'file' not in request.files:
@@ -2066,6 +2217,7 @@ def process_invoice():
         'detailed': extract_invoice_detailed,
         'non-detailed': extract_invoice_non_detailed,
         'Sysco': extract_invoice_Sysco,
+        'McLane': extract_invoice_McLane,
     }
 
     # Get the corresponding function and template based on pdf_type
