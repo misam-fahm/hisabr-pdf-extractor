@@ -1120,7 +1120,7 @@ def extract_sales_data_V2(pdf_path):
     data = {}
 
     with pdfplumber.open(pdf_path) as pdf:
-        # Loop through pages to find relevant data
+        # Loop through pages to find relevant data1
         for page in pdf.pages:
             text = page.extract_text()
             # print(text)
