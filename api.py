@@ -459,10 +459,10 @@ sales_fields_patterns = {
         r"Net\s*Sales\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Net Sales with dollar format
     ],
     "order_count": [
-        r"Order\s*Count\s*[:\-]?\s*(\d+)\b",  # Matches Order Count (only digits)
+        r"Order\s*Count\s*[:\-]?\s*([\d,]+)",  # Matches Order Count (only digits)
     ],
     "guest_count": [
-        r"Guest\s*Count\s*[:\-]?\s*(\d+)\b",  # Matches Guest Count (only digits)
+        r"Guest\s*Count\s*[:\-]?\s*([\d,]+)",  # Matches Guest Count (only digits)
     ],
     "order_average": [
         r"Order\s*Average\s*[:\-]?\s*\$?([\d,]*\.?[\d]+)\b",  # Matches Order Average with dollar format
