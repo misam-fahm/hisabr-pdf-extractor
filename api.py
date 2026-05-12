@@ -600,6 +600,13 @@ patternsMcLane = [
     r"DAIRY\s+QUEEN\s+#(\d+)"
 ]
 
+patternsUSFoods = [
+    r"MAULDIN\s+#(\d+)",
+    r"SPARTANBURG\s+#(\d+)",
+    r"FLORENCE\s+#(\d+)",
+    r"DENVER\s+#(\d+)"
+]
+
 def safe_float_V2(val):
     try:
         return float(val.replace(',', '').replace('$', '').replace('%', '').strip())
@@ -639,6 +646,8 @@ def detect_pdf_type(file):
             return 'Sysco'
         if text and "McLane Foodservice" in text:
             return 'McLane'
+        if text and "US Foods, Inc" in text:
+            return 'US-Foods'
     # Check for detailed/non-detailed based on table structure
     # with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
@@ -2164,6 +2173,169 @@ def extract_invoice_McLane(file):
     "invoice_items": invoice_items
     }
 
+def extract_invoice_UsFoods(file):
+    invoice_details = {}
+    with pdfplumber.open(file) as pdf:
+        text = pdf.pages[0].extract_text()
+        # Extract invoice number and date
+        for pattern in patternsUSFoods:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                invoice_details["store_name"] = match.group(1)
+                break
+            else:
+                invoice_details["store_name"] = "Not Found"
+
+        # Detect seller
+        if "US Foods, Inc" in text:
+            invoice_details['seller_name'] = "US Foods Inc"
+        else:
+            invoice_details['seller_name'] = "UNKNOWN"
+
+        pages = pdf.pages
+        data = ""
+        all_tables = []
+        first_page = pages[0]
+        first_page_tables = first_page.extract_tables()
+        for table in first_page_tables:
+            if not table:
+                continue
+             # find header row
+            for i in range(len(table) - 1):
+                headers = table[i]
+                values = table[i + 1]
+                if not headers or not values:
+                    continue
+                for h, v in zip(headers, values):
+                    if not h or not v:
+                        continue
+                    h = str(h).strip().upper()
+                    v = str(v).strip()
+
+                    if h == "INVOICE NUMBER" and not invoice_details.get("invoice_number"):
+                        invoice_details["invoice_number"] = v
+
+                    elif h == "INVOICE DATE" and not invoice_details.get("invoice_date"):
+                        invoice_details["invoice_date"] = v
+
+                    elif h == "PAYMENT TERMS" and not invoice_details.get("payment_terms"):
+                        invoice_details["payment_terms"] = v
+
+        for page in pages:
+            tables = page.extract_tables()
+            page_text = page.extract_text()
+            if tables:
+                all_tables.extend(tables)
+            if page_text:
+                data += "\n" + page_text
+
+        product_total_match = re.search(
+            r"Product\s+Total\s+\$?([\d,]+\.\d{2})",
+            data,
+            re.IGNORECASE
+        )
+
+        if product_total_match:
+            invoice_details["product_total"] = safe_float_V2(product_total_match.group(1))
+            invoice_details["sub_total"] = safe_float_V2(product_total_match.group(1))
+
+        inv_due_date = re.search(
+            r"PLEASE\s+REMIT\s+THIS\s+AMOUNT\s+BY.*?(\d{2}/\d{2}/\d{4})",
+            data,
+            re.IGNORECASE | re.DOTALL
+        )
+
+        if inv_due_date:
+            invoice_details['due_date'] = inv_due_date.group(1)
+
+        invoice_total_match = re.search(
+            r"PLEASE\s+REMIT\s+THIS\s+AMOUNT\s+BY.*?\$([\d,]+(?:\.\d{2})?)",
+            data,
+            re.IGNORECASE | re.DOTALL
+        )
+
+        if invoice_total_match:
+            invoice_details["invoice_total"] = safe_float_V2(
+                invoice_total_match.group(1)
+            )
+
+    def is_valid_prod_item_code(val):
+        return isinstance(val, str) and re.fullmatch(r"\d{6,7}", val)
+    
+    def clean_description(val):
+        if not val:
+            return ""
+        val = str(val)
+        return val.split("\n")[0].strip()
+
+    def parse_invoice_line_table(tables):
+        parsed_items = []
+
+        for table in tables:
+            if not table:
+                continue
+            if table[0] and "CUSTOM GROUP RECAP" in str(table[0][0]):
+                headers = table[1] if len(table) > 1 else []
+                # find index of TOTAL PIECES SHIPPED column
+                shipped_idx = None
+                for i, header in enumerate(headers):
+                    if header and "TOTAL PIECES" in header and "SHIPPED" in header:
+                        shipped_idx = i
+                        break
+                # find DELIVERY SUMMARY TOTALS row
+                if shipped_idx is not None:
+                    for row in table[2:]:
+                        if not row:
+                            continue
+                        if row[0] and "DELIVERY SUMMARY TOTALS" in str(row[0]):
+                            invoice_details["qty_ship_total"] = safe_float(row[shipped_idx])
+                            break
+            # find invoice line section
+            if not table[0] or "INVOICE LINE DETAILS" not in str(table[0][0]):
+                continue
+
+            headers = table[1] if len(table) > 1 else []
+            
+            # data starts after header rows (skip first 3 rows)
+            for row in table[3:]:
+                if not row:
+                    continue
+                if (row[0]
+                    and len([x for x in row if x not in [None, ""]]) == 1
+                    and not is_valid_prod_item_code(row[0])
+                ):
+                    current_category = str(row[0]).strip()[:44]
+                    continue
+                # product code column (index based on your sample: 4th index = PRODUCT NUMBER)
+                for i, cell in enumerate(row):
+                    if is_valid_prod_item_code(cell):
+                        item = {
+                            "item_code": cell,
+                            "qty_ord": safe_float_V2(row[0]) if len(row) > 0 else 0,
+                            "qty_ship": safe_float_V2(row[1]) if len(row) > 1 else 0,
+                            "unit": row[3] if len(row) > 3 else "",
+                            "item_description": clean_description(row[5] if len(row) > 5 else ""),
+                            "brand": row[6] if len(row) > 6 else "",
+                            "pack_size": row[7] if len(row) > 7 else "",
+                            "unit_price": safe_float_V2(row[11]),
+                            "extended_price": safe_float_V2(row[-1]),
+                            "invent_value": 0,
+                            "tax": 0,
+                            "category": current_category,
+                            "type": "US Foods"
+                        }
+                        parsed_items.append(item)
+                        break  # move to next row after match
+        return parsed_items
+    invoice_items = parse_invoice_line_table(all_tables)
+    invoice_details["misc"] = 0
+    invoice_details["tax_total"] = 0
+
+    return {
+    "invoice_details": invoice_details,
+    "invoice_items": invoice_items
+    }
+
 @app.route('/convert-pdf', methods=['POST'])
 def convert_pdf():
     if 'file' not in request.files:
@@ -2218,6 +2390,7 @@ def process_invoice():
         'non-detailed': extract_invoice_non_detailed,
         'Sysco': extract_invoice_Sysco,
         'McLane': extract_invoice_McLane,
+        'US-Foods': extract_invoice_UsFoods,
     }
 
     # Get the corresponding function and template based on pdf_type
